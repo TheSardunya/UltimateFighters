@@ -47,6 +47,28 @@ CAN_DOLU_B = (180, 0, 180)
 # --- YENİ SABİTLER ---
 YETENEK_STUN_SURESI = 3000 # 3 saniye stun süresi (milisaniye)
 
+
+
+#-----KONTROL TUŞLARI----
+p1_dash = pygame.K_f
+p1_ziplama = pygame.K_w
+p1_yumruk = pygame.K_s
+p1_tekme = pygame.K_e
+p1_skill = pygame.K_q
+p1_sag = pygame.K_d
+p1_sol = pygame.K_a
+p2_dash = pygame.K_k
+p2_ziplama = pygame.K_UP
+p2_yumruk = pygame.K_DOWN
+p2_tekme = pygame.K_RCTRL
+p2_skill = pygame.K_j
+p2_sag = pygame.K_RIGHT
+p2_sol = pygame.K_LEFT
+
+# Buton Kontrolü İçin Değişkenler
+kontrole_tiklandi = False
+tiklanan_kontrol = -1
+
 # DASH SABİTLERİ
 DASH_MESAFESI = 250
 DASH_SURESI = 15 # Kare (frame) sayısı
@@ -129,7 +151,23 @@ center_x = GENISLIK // 2
 center_y = YUKSEKLIK // 2
 tek_oyuncu_rect = pygame.Rect(center_x - button_w // 2, center_y - 100, button_w, button_h)
 iki_oyuncu_rect = pygame.Rect(center_x - button_w // 2, center_y + 20, button_w, button_h)
-kolay_rect = pygame.Rect(center_x - button_w // 2, center_y - 100, button_w, button_h)
+kontroller_rect = pygame.Rect(center_x - button_w // 2, center_y + 100, button_w, button_h)
+geri_gel_rect = pygame.Rect(center_x - button_w // 2, center_y + 260, button_w, button_h)
+p1_yumruk_kontrol = pygame.Rect(center_x - button_w // 2 + 200, center_y - 300, button_w * 1.2, button_h * 0.7)
+p1_tekme_kontrol = pygame.Rect(center_x - button_w // 2 + 200, center_y - 220, button_w * 1.2, button_h * 0.7)
+p1_dash_kontrol = pygame.Rect(center_x - button_w // 2 + 200, center_y - 140, button_w * 1.2, button_h * 0.7)
+p1_skill_kontrol = pygame.Rect(center_x - button_w // 2 + 200, center_y - 60, button_w * 1.2, button_h * 0.7)
+p1_ziplama_kontrol = pygame.Rect(center_x - button_w // 2 + 200, center_y + 20, button_w * 1.2, button_h * 0.7)
+p1_sag_kontrol = pygame.Rect(center_x - button_w // 2 + 200, center_y + 100, button_w * 1.2, button_h * 0.7)
+p1_sol_kontrol = pygame.Rect(center_x - button_w // 2 + 200, center_y + 180, button_w * 1.2, button_h * 0.7)
+p2_yumruk_kontrol = pygame.Rect(center_x - button_w // 2 - 200, center_y - 300, button_w * 1.2, button_h * 0.7)
+p2_tekme_kontrol = pygame.Rect(center_x - button_w // 2 - 200, center_y - 220, button_w * 1.2, button_h * 0.7)
+p2_dash_kontrol = pygame.Rect(center_x - button_w // 2 - 200, center_y - 140, button_w * 1.2, button_h * 0.7)
+p2_skill_kontrol = pygame.Rect(center_x - button_w // 2 - 200, center_y - 60, button_w * 1.2, button_h * 0.7)
+p2_ziplama_kontrol = pygame.Rect(center_x - button_w // 2 - 200, center_y + 20, button_w * 1.2, button_h * 0.7)
+p2_sag_kontrol = pygame.Rect(center_x - button_w // 2 - 200, center_y + 100, button_w * 1.2, button_h * 0.7)
+p2_sol_kontrol = pygame.Rect(center_x - button_w // 2 - 200, center_y + 180, button_w * 1.2, button_h * 0.7)
+kolay_rect = pygame.Rect(center_x - button_w // 2, center_y - 200, button_w, button_h)
 zor_rect = pygame.Rect(center_x - button_w // 2, center_y + 20, button_w, button_h)
 tekrar_oyna_rect = pygame.Rect(center_x - button_w // 2, center_y + 150, button_w, button_h)
 
@@ -206,7 +244,37 @@ while calisiyor:
     for event in pygame.event.get():
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             calisiyor = False
-            
+        if event.type == pygame.KEYDOWN:
+            if tiklanan_kontrol == 1:
+                p1_yumruk = event.key
+            elif tiklanan_kontrol == 2:
+                p1_tekme = event.key
+            elif tiklanan_kontrol == 3:
+                p1_dash = event.key
+            elif tiklanan_kontrol == 4:
+                p1_skill = event.key
+            elif tiklanan_kontrol == 5:
+                p1_ziplama = event.key
+            elif tiklanan_kontrol == 6:
+                p1_sag = event.key
+            elif tiklanan_kontrol == 7:
+                p1_sol = event.key
+            elif tiklanan_kontrol == 8:
+                p2_yumruk = event.key
+            elif tiklanan_kontrol == 9:
+                p2_tekme = event.key
+            elif tiklanan_kontrol == 10:
+                p2_dash = event.key
+            elif tiklanan_kontrol == 11:
+                p2_skill = event.key
+            elif tiklanan_kontrol == 12:
+                p2_ziplama = event.key
+            elif tiklanan_kontrol == 13:
+                p2_sag = event.key
+            elif tiklanan_kontrol == 14:
+                p2_sol = event.key
+            kontrole_tiklandi = False
+            tiklanan_kontrol = -1
         # MENÜ VE ZORLUK SEÇİMİ KONTROLÜ
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = event.pos
@@ -219,6 +287,9 @@ while calisiyor:
                     reset_game_state() 
                     oyun_durumu = "IKI_OYUNCULU"
                     pygame.display.set_caption("İki Oyunculu Mod (VS)")
+                elif kontroller_rect.collidepoint(mouse_pos):
+                    oyun_durumu = "CONTROLS"
+                    pygame.display.set_caption("Kontroller")
 
             elif oyun_durumu == "DIFFICULTY_SELECT":
                 if kolay_rect.collidepoint(mouse_pos):
@@ -237,6 +308,51 @@ while calisiyor:
                     reset_game_state()
                     oyun_durumu = "MENU"
                     pygame.display.set_caption("Ultimate Fighter (Menü)")
+            elif oyun_durumu == "CONTROLS":
+                if p1_yumruk_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 1
+                elif p1_tekme_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 2
+                elif p1_dash_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 3
+                elif p1_skill_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 4
+                elif p1_ziplama_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 5
+                elif p1_sag_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 6
+                elif p1_sol_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 7
+                elif p2_yumruk_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 8
+                elif p2_tekme_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 9
+                elif p2_dash_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 10
+                elif p2_skill_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 11
+                elif p2_ziplama_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 12
+                elif p2_sag_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 13
+                elif p2_sol_kontrol.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    kontrole_tiklandi = True
+                    tiklanan_kontrol = 14
+                elif geri_gel_rect.collidepoint(mouse_pos) and kontrole_tiklandi == False:
+                    oyun_durumu = "MENU"
 
 
         # OYUN İÇİ GİRDİLER (Sadece oyun devam ediyorsa)
@@ -245,7 +361,7 @@ while calisiyor:
             # --- P1 KONTROLLERİ ---
             
             # P1 Dash (F) 
-            if event.key == pygame.K_f and not p_dash_aktif and not p_yumruk_aktif and not p_tekme_aktif and not p1_stun_aktif and mevcut_zaman - p_son_dash_zamani > DASH_BEKLEME_SURESI:
+            if event.key == p1_dash and not p_dash_aktif and not p_yumruk_aktif and not p_tekme_aktif and not p1_stun_aktif and mevcut_zaman - p_son_dash_zamani > DASH_BEKLEME_SURESI:
                 p_dash_aktif = True
                 p_dash_sayaci = DASH_SURESI
                 p_son_dash_zamani = mevcut_zaman
@@ -257,12 +373,12 @@ while calisiyor:
             if not p1_stun_aktif and not p_dash_aktif: # Stun ve dash aktif değilse normal hareket ve saldırı
                 
                 # P1 Zıplama (W) 
-                if event.key == pygame.K_w and not p_yumruk_aktif and not p_tekme_aktif:
+                if event.key == p1_ziplama and not p_yumruk_aktif and not p_tekme_aktif:
                     if p_y + p_h >= zemin_y - 1: 
                         p_y_hiz = p_ziplama
                 
                 # P1 Yumruk (S) 
-                if event.key == pygame.K_s and not p_tekme_aktif and mevcut_zaman - p_son_vurus_zamani > yumruk_bekleme_suresi:
+                if event.key == p1_yumruk and not p_tekme_aktif and mevcut_zaman - p_son_vurus_zamani > yumruk_bekleme_suresi:
                     p_son_vurus_zamani = mevcut_zaman
                     p_yumruk_aktif = True
                     p_yumruk_sayaci = yumruk_suresi
@@ -280,7 +396,7 @@ while calisiyor:
                         b_engelleme_sayaci = 0
 
                 # P1 Tekme (E) 
-                if event.key == pygame.K_e and not p_yumruk_aktif and mevcut_zaman - p_son_tekme_zamani > tekme_bekleme_suresi:
+                if event.key == p1_tekme and not p_yumruk_aktif and mevcut_zaman - p_son_tekme_zamani > tekme_bekleme_suresi:
                     p_son_tekme_zamani = mevcut_zaman
                     p_tekme_aktif = True
                     p_tekme_sayaci = tekme_suresi
@@ -301,7 +417,7 @@ while calisiyor:
                         b_engelleme_sayaci = 0
             
             # P1 YETENEK (Q) - ATIŞ VEYA ÇEKME
-            if event.key == pygame.K_q:
+            if event.key == p1_skill:
                 
                 # 1. ÇEKME KONTROLÜ 
                 if p1_cekme_hakki_aktif:
@@ -324,7 +440,7 @@ while calisiyor:
             if oyun_durumu == "IKI_OYUNCULU":
                 
                 # P2 Dash (K)
-                if event.key == pygame.K_k and not b_dash_aktif and not b_yumruk_aktif and not b_tekme_aktif and not p2_stun_aktif and mevcut_zaman - b_son_dash_zamani > DASH_BEKLEME_SURESI:
+                if event.key == p2_dash and not b_dash_aktif and not b_yumruk_aktif and not b_tekme_aktif and not p2_stun_aktif and mevcut_zaman - b_son_dash_zamani > DASH_BEKLEME_SURESI:
                     b_dash_aktif = True
                     b_dash_sayaci = DASH_SURESI
                     b_son_dash_zamani = mevcut_zaman
@@ -336,12 +452,12 @@ while calisiyor:
                 if not p2_stun_aktif and not b_dash_aktif: # Stun ve dash aktif değilse
                     
                     # P2 Zıplama (UP)
-                    if event.key == pygame.K_UP and not b_yumruk_aktif and not b_tekme_aktif:
+                    if event.key == p2_ziplama and not b_yumruk_aktif and not b_tekme_aktif:
                         if b_y + b_h >= zemin_y - 1: 
                             b_y_hiz = p_ziplama
                     
                     # P2 Yumruk (DOWN) 
-                    if event.key == pygame.K_DOWN and not b_tekme_aktif and mevcut_zaman - b_son_vurus_zamani > yumruk_bekleme_suresi:
+                    if event.key == p2_yumruk and not b_tekme_aktif and mevcut_zaman - b_son_vurus_zamani > yumruk_bekleme_suresi:
                         b_son_vurus_zamani = mevcut_zaman
                         b_yumruk_aktif = True
                         b_yumruk_sayaci = yumruk_suresi
@@ -353,7 +469,7 @@ while calisiyor:
                             p_can -= yumruk_hasari 
 
                     # P2 Tekme (RCTRL) 
-                    if event.key == pygame.K_RCTRL and not b_yumruk_aktif and mevcut_zaman - b_son_tekme_zamani > tekme_bekleme_suresi:
+                    if event.key == p2_tekme and not b_yumruk_aktif and mevcut_zaman - b_son_tekme_zamani > tekme_bekleme_suresi:
                         b_son_tekme_zamani = mevcut_zaman
                         b_tekme_aktif = True
                         b_tekme_sayaci = tekme_suresi
@@ -368,7 +484,7 @@ while calisiyor:
                             p_can -= tekme_hasari 
                     
                     # P2 YETENEK (J) - ATIŞ VEYA ÇEKME
-                    if event.key == pygame.K_j:
+                    if event.key == p2_skill:
                         
                         # 1. ÇEKME KONTROLÜ
                         if p2_cekme_hakki_aktif:
@@ -391,7 +507,7 @@ while calisiyor:
 
     # --- OYUN DURUMUNA GÖRE ÇİZİM VE GÜNCELLEME ---
 
-    if oyun_durumu == "MENU" or oyun_durumu == "DIFFICULTY_SELECT" or oyun_durumu == "OYUN_BITTI":
+    if oyun_durumu == "MENU" or oyun_durumu == "DIFFICULTY_SELECT" or oyun_durumu == "OYUN_BITTI" or oyun_durumu == "CONTROLS":
         # Menü ve Ekran Çizim Kodları
         if oyun_durumu == "MENU":
             ekran.fill(SIYAH)
@@ -400,6 +516,7 @@ while calisiyor:
             ekran.blit(title_text, title_rect)
             draw_button(ekran, tek_oyuncu_rect, YESIL, "1 OYUNCULU", FONT_KUCUK, SIYAH)
             draw_button(ekran, iki_oyuncu_rect, MAVI, "2 OYUNCULU", FONT_KUCUK, SIYAH)
+            draw_button(ekran, kontroller_rect, ZEMIN_RENGI, "KONTROLLER", FONT_KUCUK, SIYAH)
 
         elif oyun_durumu == "DIFFICULTY_SELECT":
             ekran.fill(SIYAH)
@@ -417,7 +534,38 @@ while calisiyor:
             ekran.blit(kazanan_text, kazanan_rect)
             
             draw_button(ekran, tekrar_oyna_rect, YESIL, "MENÜYE DÖN", FONT_KUCUK, SIYAH)
-    
+        elif oyun_durumu == "CONTROLS":
+            ekran.fill(SIYAH)
+            p1_yumruk_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 1  else "P1 Yumruk : " + pygame.key.name(p1_yumruk)
+            p1_tekme_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 2  else "P1 Tekme : " + pygame.key.name(p1_tekme)
+            p1_dash_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 3  else "P1 Dash : " + pygame.key.name(p1_dash)
+            p1_skill_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 4  else "P1 Skill : " + pygame.key.name(p1_skill)
+            p1_ziplama_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 5  else "P1 Zıplama : " + pygame.key.name(p1_ziplama)
+            p1_sag_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 6  else "P1 Sağ : " + pygame.key.name(p1_sag)
+            p1_sol_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 7  else "P1 Sol : " + pygame.key.name(p1_sol)
+            p2_yumruk_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 8  else "P2 Yumruk : " + pygame.key.name(p2_yumruk)
+            p2_tekme_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 9  else "P2 Tekme : " + pygame.key.name(p2_tekme)
+            p2_dash_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 10  else "P2 Dash : " + pygame.key.name(p2_dash)
+            p2_skill_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 11  else "P2 Skill : " + pygame.key.name(p2_skill)
+            p2_ziplama_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 12  else "P2 Zıplama : " + pygame.key.name(p2_ziplama)
+            p2_sag_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 13  else "P2 Sağ : " + pygame.key.name(p2_sag)
+            p2_sol_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 14  else "P2 Sol : " + pygame.key.name(p2_sol)
+            draw_button(ekran, p1_yumruk_kontrol, BEYAZ, p1_yumruk_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p1_tekme_kontrol, BEYAZ, p1_tekme_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p1_dash_kontrol, BEYAZ, p1_dash_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p1_skill_kontrol, BEYAZ, p1_skill_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p1_ziplama_kontrol, BEYAZ, p1_ziplama_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p1_sag_kontrol, BEYAZ, p1_sag_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p1_sol_kontrol, BEYAZ, p1_sol_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p2_yumruk_kontrol, BEYAZ, p2_yumruk_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p2_tekme_kontrol, BEYAZ, p2_tekme_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p2_dash_kontrol, BEYAZ, p2_dash_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p2_skill_kontrol, BEYAZ, p2_skill_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p2_ziplama_kontrol, BEYAZ, p2_ziplama_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p2_sag_kontrol, BEYAZ, p2_sag_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, p2_sol_kontrol, BEYAZ, p2_sol_yazi, FONT_KUCUK, SIYAH)
+            draw_button(ekran, geri_gel_rect, BEYAZ, "Geri Gel", FONT_KUCUK, SIYAH)
+            
 
     elif oyun_durumu == "TEK_OYUNCULU" or oyun_durumu == "IKI_OYUNCULU":
         
@@ -438,10 +586,10 @@ while calisiyor:
         
         # Normal hareket (Stun, dash, yumruk, tekme aktif değilse)
         elif not p_yumruk_aktif and not p_tekme_aktif and not p1_stun_aktif: 
-            if tuslar[pygame.K_a]: 
+            if tuslar[p1_sol]: 
                 p_x_hiz -= p_hizlanma
                 p_yon = -1
-            if tuslar[pygame.K_d]: 
+            if tuslar[p1_sag]: 
                 p_x_hiz += p_hizlanma
                 p_yon = 1
         
