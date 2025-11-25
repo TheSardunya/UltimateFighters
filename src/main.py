@@ -47,8 +47,6 @@ CAN_DOLU_B = (180, 0, 180)
 # --- YENİ SABİTLER ---
 YETENEK_STUN_SURESI = 3000 # 3 saniye stun süresi (milisaniye)
 
-
-
 #-----KONTROL TUŞLARI----
 p1_dash = pygame.K_f
 p1_ziplama = pygame.K_w
@@ -89,7 +87,7 @@ p_max_hiz = 10
 p_yer_surtunmesi = 0.80    
 p_hava_surtunmesi = 0.99   
 mer_hiz = 30 
-bot_hizlanma = p_hizlanma * 0.9 # Bot için özel hızlanma
+bot_hizlanma = p_hizlanma * 1.3 # Bot daha hızlı hareket edebilir
 
 # --- OYUNCU VE BOT TEMEL DEĞİŞKENLERİ ---
 p_w, p_h = 80, 120
@@ -119,6 +117,9 @@ p_dash_aktif = False
 p_dash_sayaci = 0
 p_son_dash_zamani = 0
 p_dash_hasar_verdi = False 
+# Double jump için yeni değişkenler
+p_ziplama_sayisi = 0
+p_ziplama_yapabilir = True
 
 # P2/BOT
 b_x, b_y, b_y_hiz, b_x_hiz, b_yon, b_can, b_yumruk_aktif, b_yumruk_sayaci, b_son_vurus_zamani, b_tekme_aktif, b_tekme_sayaci, b_son_tekme_zamani = 0, 0, 0, 0, -1, 100, False, 0, 0, False, 0, 0
@@ -129,11 +130,22 @@ b_dash_aktif = False
 b_dash_sayaci = 0
 b_son_dash_zamani = 0
 b_dash_hasar_verdi = False 
+# Bot için double jump değişkenleri
+b_ziplama_sayisi = 0
+b_ziplama_yapabilir = True
 
-
+# ULTRA ZOR AI DEĞİŞKENLERİ
 ai_bekleme_sayaci = 0 
 b_engelleme_aktif = False 
-b_engelleme_sayaci = 0 # Engellemenin ne zaman biteceğini tutar (frame cinsinden)
+b_engelleme_sayaci = 0
+ai_karar_sayaci = 0
+ai_mod = "AGRESIF"
+ai_hedef_mesafe = 150
+ai_saldiri_tahmini = [0, 0]  # [x_tahmini, y_tahmini]
+ai_oyuncu_hareket_gecmisi = []  # Oyuncu hareketlerini kaydet
+ai_kombosu = []  # Kombo hareketleri
+ai_son_saldiri_zamani = 0
+ai_basit_mod = False  # Düşük can durumunda basit ama etkili taktikler
 
 # --- UI HESAPLAMALARI ---
 ORTA_BOSLUK = 50
@@ -169,8 +181,8 @@ p2_sag_kontrol = pygame.Rect(center_x - button_w // 2 - 200, center_y + 100, but
 p2_sol_kontrol = pygame.Rect(center_x - button_w // 2 - 200, center_y + 180, button_w * 1.2, button_h * 0.7)
 kolay_rect = pygame.Rect(center_x - button_w // 2, center_y - 200, button_w, button_h)
 zor_rect = pygame.Rect(center_x - button_w // 2, center_y + 20, button_w, button_h)
-tekrar_oyna_rect = pygame.Rect(center_x - button_w // 2, center_y + 150, button_w, button_h)
-
+cok_zor_rect = pygame.Rect(center_x - button_w // 2, center_y + 140, button_w, button_h)
+tekrar_oyna_rect = pygame.Rect(center_x - button_w // 2, center_y + 260, button_w, button_h)
 
 # --- YARDIMCI FONKSİYONLAR ---
 def draw_button(ekran, rect, renk, metin, font, text_color):
@@ -181,9 +193,9 @@ def draw_button(ekran, rect, renk, metin, font, text_color):
 
 def reset_game_state():
     """Tüm karakter değişkenlerini başlangıç değerlerine sıfırlar."""
-    global p_x, p_y, p_y_hiz, p_x_hiz, p_yon, p_can, p_yumruk_aktif, p_yumruk_sayaci, p_son_vurus_zamani, p_tekme_aktif, p_tekme_sayaci, p_son_tekme_zamani, p_mer_aktif, p_mer_x, p_mer_y, p_mer_hiz, p_son_yet_zamani, p_stun_bitis_zamani, p_cekme_hakki_bitis_zamani, p_dash_aktif, p_dash_sayaci, p_son_dash_zamani, p_dash_hasar_verdi
-    global b_x, b_y, b_y_hiz, b_x_hiz, b_yon, b_can, b_yumruk_aktif, b_yumruk_sayaci, b_son_vurus_zamani, b_tekme_aktif, b_tekme_sayaci, b_son_tekme_zamani, b_mer_aktif, b_mer_x, b_mer_y, b_mer_hiz, b_son_yet_zamani, b_stun_bitis_zamani, b_cekme_hakki_bitis_zamani, b_dash_aktif, b_dash_sayaci, b_son_dash_zamani, b_dash_hasar_verdi
-    global ai_bekleme_sayaci, b_engelleme_aktif, b_engelleme_sayaci, oyun_durumu, kazanan_metni
+    global p_x, p_y, p_y_hiz, p_x_hiz, p_yon, p_can, p_yumruk_aktif, p_yumruk_sayaci, p_son_vurus_zamani, p_tekme_aktif, p_tekme_sayaci, p_son_tekme_zamani, p_mer_aktif, p_mer_x, p_mer_y, p_mer_hiz, p_son_yet_zamani, p_stun_bitis_zamani, p_cekme_hakki_bitis_zamani, p_dash_aktif, p_dash_sayaci, p_son_dash_zamani, p_dash_hasar_verdi, p_ziplama_sayisi, p_ziplama_yapabilir
+    global b_x, b_y, b_y_hiz, b_x_hiz, b_yon, b_can, b_yumruk_aktif, b_yumruk_sayaci, b_son_vurus_zamani, b_tekme_aktif, b_tekme_sayaci, b_son_tekme_zamani, b_mer_aktif, b_mer_x, b_mer_y, b_mer_hiz, b_son_yet_zamani, b_stun_bitis_zamani, b_cekme_hakki_bitis_zamani, b_dash_aktif, b_dash_sayaci, b_son_dash_zamani, b_dash_hasar_verdi, b_ziplama_sayisi, b_ziplama_yapabilir
+    global ai_bekleme_sayaci, b_engelleme_aktif, b_engelleme_sayaci, oyun_durumu, kazanan_metni, ai_karar_sayaci, ai_mod, ai_hedef_mesafe, ai_saldiri_tahmini, ai_oyuncu_hareket_gecmisi, ai_kombosu, ai_son_saldiri_zamani, ai_basit_mod
 
     p_x, p_y = 100, zemin_y - p_h
     p_y_hiz, p_x_hiz = 0, 0
@@ -195,6 +207,8 @@ def reset_game_state():
     p_stun_bitis_zamani = 0
     p_cekme_hakki_bitis_zamani = 0
     p_dash_aktif, p_dash_sayaci, p_son_dash_zamani, p_dash_hasar_verdi = False, 0, 0, False
+    p_ziplama_sayisi = 0
+    p_ziplama_yapabilir = True
 
     b_x, b_y = GENISLIK - 280, zemin_y - b_h
     b_y_hiz, b_x_hiz = 0, 0
@@ -206,10 +220,20 @@ def reset_game_state():
     b_stun_bitis_zamani = 0
     b_cekme_hakki_bitis_zamani = 0
     b_dash_aktif, b_dash_sayaci, b_son_dash_zamani, b_dash_hasar_verdi = False, 0, 0, False
+    b_ziplama_sayisi = 0
+    b_ziplama_yapabilir = True
 
     ai_bekleme_sayaci = 0
     b_engelleme_aktif = False
     b_engelleme_sayaci = 0
+    ai_karar_sayaci = 0
+    ai_mod = "AGRESIF"
+    ai_hedef_mesafe = 150
+    ai_saldiri_tahmini = [0, 0]
+    ai_oyuncu_hareket_gecmisi = []
+    ai_kombosu = []
+    ai_son_saldiri_zamani = 0
+    ai_basit_mod = False
     kazanan_metni = ""
 
 def bot_can_ziplayabilir():
@@ -218,12 +242,10 @@ def bot_can_ziplayabilir():
 
 def p1_hasar_alabilir():
     """P1'in hasar alıp alamayacağını kontrol eder (Dash sırasında hasar almaz)."""
-    # Dash aktif değilse ve stun aktif değilse hasar alabilir
     return not p_dash_aktif and not p_stun_bitis_zamani > pygame.time.get_ticks()
 
 def p2_hasar_alabilir():
     """P2/Bot'un hasar alıp alamayacağını kontrol eder (Dash sırasında hasar almaz)."""
-    # Dash aktif değilse ve stun aktif değilse hasar alabilir
     return not b_dash_aktif and not b_stun_bitis_zamani > pygame.time.get_ticks()
 
 def draw_cooldown_circle(ekran, center_x, center_y, radius, cooldown_ratio, tus_adi, kalan_sure, aktif_mi):
@@ -234,46 +256,234 @@ def draw_cooldown_circle(ekran, center_x, center_y, radius, cooldown_ratio, tus_
     
     # Cooldown doluluk oranına göre renk
     if cooldown_ratio < 1.0:
-        # Cooldown doluyor - kırmızı
         renk = (200, 50, 50)
     else:
-        # Hazır - yeşil
         renk = (50, 200, 50) if aktif_mi else (100, 100, 100)
     
-    # Cooldown yüzdesine göre daire çiz (360 derecenin yüzdesi)
     if cooldown_ratio < 1.0:
-        # Dolu kısmı çiz
         angle = 360 * cooldown_ratio
         pygame.draw.arc(ekran, renk, (center_x - radius, center_y - radius, radius * 2, radius * 2), 
                        -math.pi/2, -math.pi/2 + math.radians(angle), int(radius * 0.3))
     
-    # Dış çember
     pygame.draw.circle(ekran, BEYAZ, (center_x, center_y), radius, 2)
     
-    # Tuş adını yaz
     font = pygame.font.SysFont('Arial', 20)
     tus_text = font.render(tus_adi, True, BEYAZ)
     tus_rect = tus_text.get_rect(center=(center_x, center_y))
     ekran.blit(tus_text, tus_rect)
     
-    # Kalan süreyi yaz (cooldown doluyorsa)
     if cooldown_ratio < 1.0 and kalan_sure > 0:
         time_font = pygame.font.SysFont('Arial', 16)
         time_text = time_font.render(f"{kalan_sure/1000:.1f}s", True, BEYAZ)
         time_rect = time_text.get_rect(center=(center_x, center_y + 25))
         ekran.blit(time_text, time_rect)
 
+# ULTRA ZOR AI FONKSİYONLARI
+def ai_oyuncu_hareketini_kaydet():
+    """Oyuncunun hareketlerini kaydederek pattern öğrenir"""
+    if len(ai_oyuncu_hareket_gecmisi) > 50:  # Son 50 hareketi sakla
+        ai_oyuncu_hareket_gecmisi.pop(0)
+    
+    hareket = {
+        'x': p_x,
+        'y': p_y,
+        'x_hiz': p_x_hiz,
+        'y_hiz': p_y_hiz,
+        'yon': p_yon,
+        'zaman': mevcut_zaman
+    }
+    ai_oyuncu_hareket_gecmisi.append(hareket)
+
+def ai_hareket_tahmini_yap():
+    """Oyuncunun gelecekteki konumunu tahmin et"""
+    if len(ai_oyuncu_hareket_gecmisi) < 5:
+        return p_x + p_x_hiz * 8, p_y + p_y_hiz * 8
+    
+    # Son 5 frame'in ortalamasını al
+    ortalama_x_hiz = sum([hareket['x_hiz'] for hareket in ai_oyuncu_hareket_gecmisi[-5:]]) / 5
+    ortalama_y_hiz = sum([hareket['y_hiz'] for hareket in ai_oyuncu_hareket_gecmisi[-5:]]) / 5
+    
+    tahmini_x = p_x + ortalama_x_hiz * 12  # 12 frame ilerisi
+    tahmini_y = p_y + ortalama_y_hiz * 12
+    
+    return tahmini_x, tahmini_y
+
+def ai_kombo_olustur():
+    """Rastgele kombolar oluştur"""
+    kombolar = [
+        ["YUMRUK", "TEKME", "YUMRUK"],
+        ["TEKME", "DASH", "YUMRUK"],
+        ["YUMRUK", "YUMRUK", "TEKME"],
+        ["DASH", "YUMRUK", "TEKME"],
+        ["YUMRUK", "TEKME", "MERMI"]
+    ]
+    return random.choice(kombolar)
+
+def ai_mod_degistir():
+    """Duruma göre AI modunu değiştir"""
+    global ai_mod, ai_hedef_mesafe, ai_basit_mod
+    
+    if b_can > b_max_can * 0.7:  # %70 üstü
+        ai_mod = "AGRESIF"
+        ai_hedef_mesafe = 80
+        ai_basit_mod = False
+    elif b_can > b_max_can * 0.3:  # %30-%70 arası
+        ai_mod = "TAKTIKLI"
+        ai_hedef_mesafe = 150
+        ai_basit_mod = False
+    else:  # %30 altı
+        ai_mod = "HAYATTA_KALMA"
+        ai_hedef_mesafe = 250
+        ai_basit_mod = True
+
+def ai_mermi_hedefi_belirle():
+    """İleri seviye mermi hedefleme"""
+    tahmini_x, tahmini_y = ai_hareket_tahmini_yap()
+    
+    # Botun pozisyonundan tahmini hedefe vektör
+    vektor_x = tahmini_x - (b_x + b_w/2)
+    vektor_y = tahmini_y - (b_y + b_h/2)
+    
+    # Vektörü normalize et
+    uzunluk = math.sqrt(vektor_x**2 + vektor_y**2)
+    if uzunluk > 0:
+        vektor_x /= uzunluk
+        vektor_y /= uzunluk
+    
+    return vektor_x, vektor_y
+
+def ai_saldiri_konumlandirma():
+    """Akıllı saldırı konumlandırma"""
+    tahmini_x, tahmini_y = ai_hareket_tahmini_yap()
+    
+    saldiri_menzili = 100
+    mevcut_mesafe = abs(tahmini_x - b_x)
+    
+    if mevcut_mesafe > saldiri_menzili + 50:
+        if tahmini_x > b_x:
+            return 1  # Sağa git
+        else:
+            return -1  # Sola git
+    elif mevcut_mesafe < saldiri_menzili - 30:
+        if tahmini_x > b_x:
+            return -1  # Sola git (uzaklaş)
+        else:
+            return 1   # Sağa git (uzaklaş)
+    else:
+        # Küçük hareketlerle pozisyon al
+        if random.random() < 0.4:
+            return 1 if random.random() < 0.5 else -1
+        return 0
+
+def ai_yetenek_karari():
+    """Çok agresif yetenek kullanımı"""
+    yatay_mesafe = abs(p_x - b_x)
+    
+    # Çekme hakkı varsa mutlaka kullan
+    if p2_cekme_hakki_aktif and p1_stun_aktif:
+        return "CEKME"
+    
+    # Mermi atışı - ÇOK YÜKSEK ŞANS
+    if not b_mer_aktif and mevcut_zaman - b_son_yet_zamani > yet_bekleme_suresi:
+        if ai_mod == "AGRESIF":
+            if yatay_mesafe < 400 and random.random() < 0.7:  # %70 şans
+                return "MERMI_ATES"
+        elif ai_mod == "TAKTIKLI":
+            if yatay_mesafe > 200 and yatay_mesafe < 500 and random.random() < 0.6:
+                return "MERMI_ATES"
+        else:  # HAYATTA_KALMA
+            if yatay_mesafe < 200 and random.random() < 0.8:  # Yakındaysa yüksek şans
+                return "MERMI_ATES"
+    
+    return "BEKLE"
+
+def ai_dash_karari():
+    """Sürekli dash kullanımı"""
+    yatay_mesafe = abs(p_x - b_x)
+    
+    if mevcut_zaman - b_son_dash_zamani > DASH_BEKLEME_SURESI * 0.8:  # Daha sık dash
+        if ai_mod == "AGRESIF":
+            if (yatay_mesafe > 100 and yatay_mesafe < 350) or p1_stun_aktif:
+                if random.random() < 0.6:  # %60 şans
+                    return "SALDIRI"
+        elif ai_mod == "TAKTIKLI":
+            if yatay_mesafe > 200 or (p_mer_aktif and abs(p_mer_x - b_x) < 250):
+                if random.random() < 0.5:
+                    return "KACIS" if yatay_mesafe < 150 else "SALDIRI"
+        else:  # HAYATTA_KALMA
+            if yatay_mesafe < 150 or p_can > b_can:
+                if random.random() < 0.7:
+                    return "KACIS"
+    
+    return "BEKLE"
+
+def ai_yakın_dovus_karari():
+    """Çok agresif yakın dövüş"""
+    yatay_mesafe = abs(p_x - b_x)
+    saldiri_menzili = 110
+    
+    if yatay_mesafe < saldiri_menzili:
+        if ai_mod == "AGRESIF":
+            # SÜREKLİ SALDIRI
+            if not b_yumruk_aktif and mevcut_zaman - b_son_vurus_zamani > yumruk_bekleme_suresi * 0.6:
+                if random.random() < 0.8:  # %80 şans
+                    return "YUMRUK"
+            
+            if not b_tekme_aktif and mevcut_zaman - b_son_tekme_zamani > tekme_bekleme_suresi * 0.8:
+                if random.random() < 0.5:
+                    return "TEKME"
+                    
+        elif ai_mod == "TAKTIKLI":
+            if not b_yumruk_aktif and mevcut_zaman - b_son_vurus_zamani > yumruk_bekleme_suresi:
+                if random.random() < 0.6:
+                    return "YUMRUK"
+            
+            if not b_tekme_aktif and mevcut_zaman - b_son_tekme_zamani > tekme_bekleme_suresi:
+                if random.random() < 0.4:
+                    return "TEKME"
+            
+            # Akıllı engelleme
+            if not b_engelleme_aktif and p_yumruk_aktif and random.random() < 0.4:
+                return "ENGELLE"
+                
+        else:  # HAYATTA_KALMA
+            if not b_engelleme_aktif and random.random() < 0.6:
+                return "ENGELLE"
+            elif not b_yumruk_aktif and mevcut_zaman - b_son_vurus_zamani > yumruk_bekleme_suresi:
+                if random.random() < 0.3:
+                    return "YUMRUK"
+    
+    return "BEKLE"
+
+def ai_ziplama_karari():
+    """Akıllı zıplama kararı"""
+    if (b_y + b_h >= zemin_y - 1 or (b_ziplama_sayisi < 2 and b_ziplama_yapabilir)):
+        if ai_mod == "AGRESIF":
+            # Saldırı için zıpla
+            if abs(p_x - b_x) < 150 and random.random() < 0.3:
+                return True
+            # Mermiden kaçmak için zıpla
+            if p_mer_aktif and abs(p_mer_x - b_x) < 200 and random.random() < 0.7:
+                return True
+        elif ai_mod == "TAKTIKLI":
+            if (p_mer_aktif and abs(p_mer_x - b_x) < 250) or (abs(p_x - b_x) < 100 and random.random() < 0.2):
+                return True
+        else:  # HAYATTA_KALMA
+            if p_mer_aktif and abs(p_mer_x - b_x) < 300 and random.random() < 0.8:
+                return True
+    
+    return False
 
 # 2. OYUN DÖNGÜSÜ
 calisiyor = True
 while calisiyor:
     mevcut_zaman = pygame.time.get_ticks()
     
-    # Stun Durumu Kontrolü (Hareketsizlik)
+    # Stun Durumu Kontrolü
     p1_stun_aktif = mevcut_zaman < p_stun_bitis_zamani 
     p2_stun_aktif = mevcut_zaman < b_stun_bitis_zamani 
     
-    # Çekme Hakkı Kontrolü (Vuranın Q/J'ye tekrar basma hakkı)
+    # Çekme Hakkı Kontrolü
     p1_cekme_hakki_aktif = mevcut_zaman < p_cekme_hakki_bitis_zamani
     p2_cekme_hakki_aktif = mevcut_zaman < b_cekme_hakki_bitis_zamani
     
@@ -340,6 +550,7 @@ while calisiyor:
                 p2_sol = event.key
             kontrole_tiklandi = False
             tiklanan_kontrol = -1
+        
         # MENÜ VE ZORLUK SEÇİMİ KONTROLÜ
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = event.pos
@@ -367,6 +578,11 @@ while calisiyor:
                     reset_game_state() 
                     oyun_durumu = "TEK_OYUNCULU"
                     pygame.display.set_caption("Tek Oyunculu Mod (Zor)")
+                elif cok_zor_rect.collidepoint(mouse_pos):
+                    bot_zorluk = "COK_ZOR"
+                    reset_game_state() 
+                    oyun_durumu = "TEK_OYUNCULU"
+                    pygame.display.set_caption("Tek Oyunculu Mod (ÇOK ZOR)")
                     
             elif oyun_durumu == "OYUN_BITTI":
                 if tekrar_oyna_rect.collidepoint(mouse_pos):
@@ -420,29 +636,24 @@ while calisiyor:
                     oyun_durumu = "MENU"
 
 
-        # OYUN İÇİ GİRDİLER (Sadece oyun devam ediyorsa)
+        # OYUN İÇİ GİRDİLER
         if (oyun_durumu == "TEK_OYUNCULU" or oyun_durumu == "IKI_OYUNCULU") and event.type == pygame.KEYDOWN:
             
             # --- P1 KONTROLLERİ ---
-            
-            # P1 Dash (F) 
             if event.key == p1_dash and not p_dash_aktif and not p_yumruk_aktif and not p_tekme_aktif and not p1_stun_aktif and mevcut_zaman - p_son_dash_zamani > DASH_BEKLEME_SURESI:
                 p_dash_aktif = True
                 p_dash_sayaci = DASH_SURESI
                 p_son_dash_zamani = mevcut_zaman
                 p_dash_hasar_verdi = False
-                
                 dash_hiz = DASH_MESAFESI / DASH_SURESI
                 p_x_hiz = dash_hiz * p_yon
                 
-            if not p1_stun_aktif and not p_dash_aktif: # Stun ve dash aktif değilse normal hareket ve saldırı
-                
-                # P1 Zıplama (W) 
+            if not p1_stun_aktif and not p_dash_aktif:
                 if event.key == p1_ziplama and not p_yumruk_aktif and not p_tekme_aktif:
-                    if p_y + p_h >= zemin_y - 1: 
+                    if (p_y + p_h >= zemin_y - 1) or (p_ziplama_sayisi < 2 and p_ziplama_yapabilir):
                         p_y_hiz = p_ziplama
+                        p_ziplama_sayisi += 1
                 
-                # P1 Yumruk (S) 
                 if event.key == p1_yumruk and not p_tekme_aktif and mevcut_zaman - p_son_vurus_zamani > yumruk_bekleme_suresi:
                     p_son_vurus_zamani = mevcut_zaman
                     p_yumruk_aktif = True
@@ -460,7 +671,6 @@ while calisiyor:
                         b_engelleme_aktif = False
                         b_engelleme_sayaci = 0
 
-                # P1 Tekme (E) 
                 if event.key == p1_tekme and not p_yumruk_aktif and mevcut_zaman - p_son_tekme_zamani > tekme_bekleme_suresi:
                     p_son_tekme_zamani = mevcut_zaman
                     p_tekme_aktif = True
@@ -481,10 +691,7 @@ while calisiyor:
                         b_engelleme_aktif = False
                         b_engelleme_sayaci = 0
             
-            # P1 YETENEK (Q) - ATIŞ VEYA ÇEKME
             if event.key == p1_skill:
-                
-                # 1. ÇEKME KONTROLÜ 
                 if p1_cekme_hakki_aktif:
                     if p2_stun_aktif:
                         b_x = p_x - p_w if p_yon == 1 else p_x + p_w 
@@ -492,8 +699,6 @@ while calisiyor:
                         b_yon = p_yon 
                         b_stun_bitis_zamani = 0 
                     p_cekme_hakki_bitis_zamani = 0 
-
-                # 2. ATIŞ KONTROLÜ
                 elif not p_mer_aktif and mevcut_zaman - p_son_yet_zamani > yet_bekleme_suresi:
                     p_mer_aktif = True
                     p_mer_hiz = mer_hiz * p_yon
@@ -503,25 +708,20 @@ while calisiyor:
 
             # --- P2 KONTROLLERİ (2 Oyunculu Mod) ---
             if oyun_durumu == "IKI_OYUNCULU":
-                
-                # P2 Dash (K)
                 if event.key == p2_dash and not b_dash_aktif and not b_yumruk_aktif and not b_tekme_aktif and not p2_stun_aktif and mevcut_zaman - b_son_dash_zamani > DASH_BEKLEME_SURESI:
                     b_dash_aktif = True
                     b_dash_sayaci = DASH_SURESI
                     b_son_dash_zamani = mevcut_zaman
                     b_dash_hasar_verdi = False
-                    
                     dash_hiz = DASH_MESAFESI / DASH_SURESI
                     b_x_hiz = dash_hiz * b_yon
 
-                if not p2_stun_aktif and not b_dash_aktif: # Stun ve dash aktif değilse
-                    
-                    # P2 Zıplama (UP)
+                if not p2_stun_aktif and not b_dash_aktif:
                     if event.key == p2_ziplama and not b_yumruk_aktif and not b_tekme_aktif:
-                        if b_y + b_h >= zemin_y - 1: 
+                        if (b_y + b_h >= zemin_y - 1) or (b_ziplama_sayisi < 2 and b_ziplama_yapabilir):
                             b_y_hiz = p_ziplama
+                            b_ziplama_sayisi += 1
                     
-                    # P2 Yumruk (DOWN) 
                     if event.key == p2_yumruk and not b_tekme_aktif and mevcut_zaman - b_son_vurus_zamani > yumruk_bekleme_suresi:
                         b_son_vurus_zamani = mevcut_zaman
                         b_yumruk_aktif = True
@@ -533,7 +733,6 @@ while calisiyor:
                         if b_yumruk_rect.colliderect(p1_rect) and p_can > 0 and p1_hasar_alabilir():
                             p_can -= yumruk_hasari 
 
-                    # P2 Tekme (RCTRL) 
                     if event.key == p2_tekme and not b_yumruk_aktif and mevcut_zaman - b_son_tekme_zamani > tekme_bekleme_suresi:
                         b_son_tekme_zamani = mevcut_zaman
                         b_tekme_aktif = True
@@ -548,20 +747,14 @@ while calisiyor:
                         if b_tekme_rect.colliderect(p1_rect) and p_can > 0 and p1_hasar_alabilir():
                             p_can -= tekme_hasari 
                     
-                    # P2 YETENEK (J) - ATIŞ VEYA ÇEKME
                     if event.key == p2_skill:
-                        
-                        # 1. ÇEKME KONTROLÜ
                         if p2_cekme_hakki_aktif:
                             if p1_stun_aktif:
                                 p_x = b_x - b_w if b_yon == 1 else b_x + b_w 
                                 p_y = zemin_y - p_h
                                 p_yon = b_yon 
                                 p_stun_bitis_zamani = 0 
-                            
                             b_cekme_hakki_bitis_zamani = 0 
-
-                        # 2. ATIŞ KONTROLÜ
                         elif not b_mer_aktif and mevcut_zaman - b_son_yet_zamani > yet_bekleme_suresi:
                             b_mer_aktif = True
                             b_mer_hiz = mer_hiz * b_yon
@@ -573,7 +766,6 @@ while calisiyor:
     # --- OYUN DURUMUNA GÖRE ÇİZİM VE GÜNCELLEME ---
 
     if oyun_durumu == "MENU" or oyun_durumu == "DIFFICULTY_SELECT" or oyun_durumu == "OYUN_BITTI" or oyun_durumu == "CONTROLS":
-        # Menü ve Ekran Çizim Kodları
         if oyun_durumu == "MENU":
             ekran.fill(SIYAH)
             title_text = FONT_BUYUK.render("ULTIMATE FIGHTER", True, BEYAZ)
@@ -588,17 +780,17 @@ while calisiyor:
             title_text = FONT_BUYUK.render("ZORLUK SEÇİMİ", True, SARI)
             title_rect = title_text.get_rect(center=(center_x, center_y - 200))
             ekran.blit(title_text, title_rect)
-            draw_button(ekran, kolay_rect, YESIL, "KOLAY (Hareketsiz Bot)", FONT_KUCUK, SIYAH)
-            draw_button(ekran, zor_rect, CAN_DOLU_P, "ZOR (Yapay Zeka)", FONT_KUCUK, BEYAZ)
+            draw_button(ekran, kolay_rect, YESIL, "KOLAY", FONT_KUCUK, SIYAH)
+            draw_button(ekran, zor_rect, (255, 165, 0), "ZOR", FONT_KUCUK, SIYAH)
+            draw_button(ekran, cok_zor_rect, CAN_DOLU_P, "ÇOK ZOR", FONT_KUCUK, BEYAZ)
 
         elif oyun_durumu == "OYUN_BITTI":
             ekran.fill(SIYAH)
-            
             kazanan_text = FONT_DEV.render(kazanan_metni, True, (255, 0, 0)) 
             kazanan_rect = kazanan_text.get_rect(center=(center_x, center_y - 50))
             ekran.blit(kazanan_text, kazanan_rect)
-            
             draw_button(ekran, tekrar_oyna_rect, YESIL, "MENÜYE DÖN", FONT_KUCUK, SIYAH)
+            
         elif oyun_durumu == "CONTROLS":
             ekran.fill(SIYAH)
             p1_yumruk_yazi = "<Bir Tuşa Bas>" if tiklanan_kontrol == 1  else "P1 Yumruk : " + pygame.key.name(p1_yumruk)
@@ -637,19 +829,14 @@ while calisiyor:
         tuslar = pygame.key.get_pressed()
         
         # --- P1 FİZİK VE HAREKET HESAPLAMALARI ---
-        
-        # DASH FİZİĞİ
         if p_dash_aktif:
             p_dash_sayaci -= 1
             if p_dash_sayaci <= 0:
                 p_dash_aktif = False
                 p_x_hiz = 0 
-            
             if p_y + p_h < zemin_y:
                 p_y_hiz += yer_cekimi * 0.5 
         
-        
-        # Normal hareket (Stun, dash, yumruk, tekme aktif değilse)
         elif not p_yumruk_aktif and not p_tekme_aktif and not p1_stun_aktif: 
             if tuslar[p1_sol]: 
                 p_x_hiz -= p_hizlanma
@@ -658,7 +845,6 @@ while calisiyor:
                 p_x_hiz += p_hizlanma
                 p_yon = 1
         
-        # P1 Hız ve Konum Güncelleme
         if p1_stun_aktif: 
             p_x_hiz = 0
             p_y_hiz += yer_cekimi * 0.5 
@@ -672,10 +858,15 @@ while calisiyor:
             
         p_x += p_x_hiz
         p_y += p_y_hiz
-        if p_y + p_h > zemin_y: p_y = zemin_y - p_h; p_y_hiz = 0
+        
+        if p_y + p_h > zemin_y: 
+            p_y = zemin_y - p_h
+            p_y_hiz = 0
+            p_ziplama_sayisi = 0
+            p_ziplama_yapabilir = True
+        
         if p_x < 0: p_x, p_x_hiz = 0, 0
         if p_x > GENISLIK - p_w: p_x, p_x_hiz = GENISLIK - p_w, 0
-
 
         # P1 DASH HASAR KONTROLÜ
         p_rect = pygame.Rect(p_x, p_y, p_w, p_h)
@@ -686,25 +877,19 @@ while calisiyor:
                 b_engelleme_aktif = False 
                 p_dash_hasar_verdi = True
         
-        
         # --- P2/BOT FİZİK VE HAREKET HESAPLAMALARI ---
-        
         yatay_mesafe = p_x - b_x
         
-        # DASH FİZİĞİ
         if b_dash_aktif:
             b_dash_sayaci -= 1
             if b_dash_sayaci <= 0:
                 b_dash_aktif = False
                 b_x_hiz = 0
-            
             if b_y + b_h < zemin_y:
                 b_y_hiz += yer_cekimi * 0.5 
 
         # --- P2/BOT HAREKET KONTROLLERİ ---
-        
         if oyun_durumu == "IKI_OYUNCULU":
-            # P2 - İKİ OYUNCULU KONTROLLER
             if not b_yumruk_aktif and not b_tekme_aktif and not p2_stun_aktif and not b_dash_aktif:
                 if tuslar[pygame.K_LEFT]:
                     b_x_hiz -= p_hizlanma
@@ -714,174 +899,135 @@ while calisiyor:
                     b_yon = 1
                     
         elif oyun_durumu == "TEK_OYUNCULU":
-            # BOT KONTROLLERİ
-            
             if bot_zorluk == "KOLAY":
                 b_x_hiz *= p_yer_surtunmesi
                 
             elif bot_zorluk == "ZOR":
+                # ORTA ZORLUK AI
+                b_yon = 1 if yatay_mesafe > 0 else -1
+                if not p2_stun_aktif and not b_dash_aktif and not b_yumruk_aktif and not b_tekme_aktif:
+                    if abs(yatay_mesafe) > 200:
+                        if yatay_mesafe > 0:
+                            b_x_hiz += bot_hizlanma
+                        else:
+                            b_x_hiz -= bot_hizlanma
+                    elif abs(yatay_mesafe) < 80:
+                        if yatay_mesafe > 0:
+                            b_x_hiz -= bot_hizlanma
+                        else:
+                            b_x_hiz += bot_hizlanma
                 
-                # --- YAPAY ZEKA MODU BELİRLEME ---
-                SAVUNMA_CAN_SINIRI = b_max_can * 0.6 # %60 canın altı
+                if abs(yatay_mesafe) < 120 and random.random() < 0.1:
+                    if not b_yumruk_aktif and mevcut_zaman - b_son_vurus_zamani > yumruk_bekleme_suresi:
+                        b_son_vurus_zamani = mevcut_zaman
+                        b_yumruk_aktif = True
+                        b_yumruk_sayaci = yumruk_suresi
                 
-                if b_can > SAVUNMA_CAN_SINIRI:
-                    ai_modu = "SALDIRGAN"
-                    # Saldırgan mod, daha hızlı hareket eder
-                    hiz_carpan = 1.5 
-                    yakın_menzil = 100
-                    uzak_menzil = 400
-                else:
-                    ai_modu = "PASIF"
-                    # Pasif mod, daha yavaş ve temkinli hareket eder
-                    hiz_carpan = 1.0 
-                    yakın_menzil = 80
-                    uzak_menzil = 600
-
+            elif bot_zorluk == "COK_ZOR":
+                # ULTRA ZOR AI
+                ai_oyuncu_hareketini_kaydet()
+                ai_mod_degistir()
                 
-                # Değişkenler
-                yatay_mesafe = p_x - b_x
+                b_yon = 1 if yatay_mesafe > 0 else -1
+                ai_karar_sayaci += 1
                 
-                # Yönü Oyuncuya Çevir
-                b_yon = 1 if yatay_mesafe > 0 else -1 
-                
-                # 1. BOT ÇEKME HAKKI KONTROLÜ
-                if p2_cekme_hakki_aktif and p1_stun_aktif and random.random() < 0.1: # %10 şans
-                    p_x = b_x - b_w if b_yon == 1 else b_x + b_w 
-                    p_y = zemin_y - p_h
-                    p_yon = b_yon 
-                    p_stun_bitis_zamani = 0 
-                    b_cekme_hakki_bitis_zamani = 0 
-
-                
-                # 2. TEMEL HAREKET, SALDIRI VE YETENEK KULLANIMI (Dash/Stun aktif değilse)
-                
-                if not p2_stun_aktif and not b_dash_aktif:
+                if ai_karar_sayaci >= 8:  # Çok hızlı karar verme
+                    ai_karar_sayaci = 0
                     
+                    # Çekme hakkı - ANINDA kullan
+                    if p2_cekme_hakki_aktif and p1_stun_aktif:
+                        p_x = b_x - b_w if b_yon == 1 else b_x + b_w 
+                        p_y = zemin_y - p_h
+                        p_yon = b_yon 
+                        p_stun_bitis_zamani = 0 
+                        b_cekme_hakki_bitis_zamani = 0
                     
-                    # --- YETENEK (Q/J) VE DASH KARARI ---
-
-                    # Bot aktif olarak mermi atmıyorsa, dash veya yetenek kararı ver
-                    if not b_mer_aktif:
-                        
-                        # A) DASH KARARI
-                        dash_uygula = False
-                        
-                        if ai_modu == "SALDIRGAN":
-                            # Saldırgan Dash: Gap kapatma ve hasar (Orta mesafeyi kapat)
-                            if abs(yatay_mesafe) > yakın_menzil and abs(yatay_mesafe) < uzak_menzil and random.random() < 0.05: # %5 şans
-                                dash_uygula = True
-                        
-                        elif ai_modu == "PASIF":
-                            # Pasif Dash: Kaçış (Çok yakın mesafeden veya mermiden kaç)
-                            if (abs(yatay_mesafe) < 100 or (p_mer_aktif and abs(p_mer_x - b_x) < 400)) and random.random() < 0.07: # %7 şansla kaç
-                                dash_uygula = True
-                                # Oyuncudan uzaklaş
-                                b_yon = 1 if yatay_mesafe < 0 else -1 
-
-                        
-                        if dash_uygula and mevcut_zaman - b_son_dash_zamani > DASH_BEKLEME_SURESI:
-                            b_dash_aktif = True
-                            b_dash_sayaci = DASH_SURESI
-                            b_son_dash_zamani = mevcut_zaman
-                            b_dash_hasar_verdi = False
-                            
-                            dash_hiz = DASH_MESAFESI / DASH_SURESI
+                    # Dash - ÇOK AGRESİF
+                    dash_karar = ai_dash_karari()
+                    if dash_karar != "BEKLE" and not b_dash_aktif and not p2_stun_aktif:
+                        b_dash_aktif = True
+                        b_dash_sayaci = DASH_SURESI
+                        b_son_dash_zamani = mevcut_zaman
+                        b_dash_hasar_verdi = False
+                        dash_hiz = DASH_MESAFESI / DASH_SURESI
+                        if dash_karar == "KACIS":
+                            b_x_hiz = dash_hiz * (-b_yon)
+                        else:
                             b_x_hiz = dash_hiz * b_yon
-
-                        # B) MENZİL YETENEĞİ KARARI
-                        
-                        elif mevcut_zaman - b_son_yet_zamani > yet_bekleme_suresi:
-                            
-                            yet_kullanma_sansi = 0.15 if ai_modu == "SALDIRGAN" and abs(yatay_mesafe) > 500 else 0.10 # Saldırgan uzaktan sıkılırsa %15
-                            
-                            if ai_modu == "PASIF" and abs(yatay_mesafe) > 300: # Pasif modda mesafeyi korurken kullan
-                                yet_kullanma_sansi = 0.18
-                            
-                            if random.random() < yet_kullanma_sansi:
-                                b_mer_aktif = True
-                                b_mer_hiz = mer_hiz * b_yon
-                                b_mer_x = b_x + b_w / 2 
-                                b_mer_y = b_y + b_h / 2
-                                b_son_yet_zamani = mevcut_zaman
-                                b_x_hiz = 0 # Atış sırasında dur
-
                     
-                    # --- YAKIN DÖVÜŞ VE KONUMLANMA ---
+                    # Yetenek - SÜREKLİ KULLANIM
+                    yetenek_karar = ai_yetenek_karari()
+                    if yetenek_karar == "MERMI_ATES" and not b_mer_aktif and not p2_stun_aktif:
+                        b_mer_aktif = True
+                        vektor_x, vektor_y = ai_mermi_hedefi_belirle()
+                        b_mer_hiz = mer_hiz * vektor_x
+                        b_mer_x = b_x + b_w / 2 
+                        b_mer_y = b_y + b_h / 2
+                        b_son_yet_zamani = mevcut_zaman
                     
-                    elif not b_yumruk_aktif and not b_tekme_aktif:
-                        
-                        
-                        if abs(yatay_mesafe) < yakın_menzil + 20: # Yumruk/Tekme menzili
-                            
-                            # YUMRUK KARARI (Hızlı ve sık)
-                            yumruk_sansi = 0.25 if ai_modu == "SALDIRGAN" else 0.08
-                            if mevcut_zaman - b_son_vurus_zamani > yumruk_bekleme_suresi * 0.5 and random.random() < yumruk_sansi:
-                                b_son_vurus_zamani = mevcut_zaman
-                                b_yumruk_aktif = True
-                                b_yumruk_sayaci = yumruk_suresi
-                                b_x_hiz = 0
-                                
-                            # TEKME KARARI (Yavaş ama güçlü)
-                            tekme_sansi = 0.10 if ai_modu == "SALDIRGAN" else 0.03
-                            if mevcut_zaman - b_son_tekme_zamani > tekme_bekleme_suresi and random.random() < tekme_sansi:
-                                b_son_tekme_zamani = mevcut_zaman
-                                b_tekme_aktif = True
-                                b_tekme_sayaci = tekme_suresi
-                                b_x_hiz = 0
-                                
-                            # ENGELLEME KARARI (Pasif mod öncelikli)
-                            elif ai_modu == "PASIF" and random.random() < 0.15: # %15 Engelle
-                                b_engelleme_aktif = True
-                                b_engelleme_sayaci = random.randint(30, 90) # 0.5 ile 1.5 saniye
-                                b_x_hiz = 0
-
-                            # YAKINDAKİ HAREKET (Pasif modda geri çekilme şansı)
-                            else: # Saldırı ve engelleme kararı yoksa hareket et
-                                if ai_modu == "PASIF" and random.random() < 0.1:
-                                    # Geri Çekil
-                                    b_x_hiz += bot_hizlanma * hiz_carpan * (-b_yon)
-                                elif ai_modu == "SALDIRGAN":
-                                    # Çok yakında olsa bile hafifçe ittirmeye devam et
-                                    if yatay_mesafe > 0: b_x_hiz += bot_hizlanma * hiz_carpan
-                                    else: b_x_hiz -= bot_hizlanma * hiz_carpan
-                                else:
-                                    # Pasif: Dur
-                                    b_x_hiz *= p_yer_surtunmesi * 0.5
-
-                            
-                        
-                        elif abs(yatay_mesafe) > yakın_menzil: # Yakınlaşma/Uzaklaşma
-
-                            if ai_modu == "SALDIRGAN":
-                                # Oyuncuya doğru koş (Yakınlaş)
-                                if yatay_mesafe > 0:
-                                    b_x_hiz += bot_hizlanma * hiz_carpan
-                                else:
-                                    b_x_hiz -= bot_hizlanma * hiz_carpan
-                            
-                            elif ai_modu == "PASIF":
-                                # Kontrollü hareket (Çok uzaksa yakınlaş, ideal mesafeye gelince dur)
-                                if abs(yatay_mesafe) > uzak_menzil:
-                                     # Oyuncuya doğru yürü
-                                    if yatay_mesafe > 0: b_x_hiz += bot_hizlanma * hiz_carpan
-                                    else: b_x_hiz -= bot_hizlanma * hiz_carpan
-                                else:
-                                    # Yavaşla/Dur
-                                    b_x_hiz *= p_yer_surtunmesi * 0.5
-                                
-                            # Zıplama (Her iki modda da rastgele)
-                            if bot_can_ziplayabilir() and random.random() < 0.005:
-                                b_y_hiz = p_ziplama 
-                                
+                    # Yakın dövüş - ÇOK AGRESİF
+                    if not p2_stun_aktif and not b_dash_aktif:
+                        dovus_karar = ai_yakın_dovus_karari()
+                        if dovus_karar == "YUMRUK" and not b_yumruk_aktif:
+                            b_son_vurus_zamani = mevcut_zaman
+                            b_yumruk_aktif = True
+                            b_yumruk_sayaci = yumruk_suresi
+                        elif dovus_karar == "TEKME" and not b_tekme_aktif:
+                            b_son_tekme_zamani = mevcut_zaman
+                            b_tekme_aktif = True
+                            b_tekme_sayaci = tekme_suresi
+                        elif dovus_karar == "ENGELLE" and not b_engelleme_aktif:
+                            b_engelleme_aktif = True
+                            b_engelleme_sayaci = random.randint(20, 40)
+                
+                # Hareket - İLERİ SEVİYE KONUMLANMA
+                if not p2_stun_aktif and not b_dash_aktif and not b_yumruk_aktif and not b_tekme_aktif:
+                    konum_karar = ai_saldiri_konumlandirma()
+                    mevcut_mesafe = abs(p_x - b_x)
                     
-                    # Engellemeyi bitirme sayacı
-                    if b_engelleme_aktif:
-                        b_engelleme_sayaci -= 1
-                        if b_engelleme_sayaci <= 0:
-                            b_engelleme_aktif = False
+                    if ai_mod == "AGRESIF":
+                        # SÜREKLİ BASKI
+                        if konum_karar == 1:
+                            b_x_hiz += bot_hizlanma * 1.5
+                        elif konum_karar == -1:
+                            b_x_hiz -= bot_hizlanma * 1.5
+                        else:
+                            if random.random() < 0.5:
+                                b_x_hiz += bot_hizlanma * 0.8 * (1 if random.random() < 0.5 else -1)
+                    
+                    elif ai_mod == "TAKTIKLI":
+                        # AKILLI POZİSYON
+                        if mevcut_mesafe > ai_hedef_mesafe + 30:
+                            if p_x > b_x:
+                                b_x_hiz += bot_hizlanma * 1.2
+                            else:
+                                b_x_hiz -= bot_hizlanma * 1.2
+                        elif mevcut_mesafe < ai_hedef_mesafe - 30:
+                            if p_x > b_x:
+                                b_x_hiz -= bot_hizlanma * 1.2
+                            else:
+                                b_x_hiz += bot_hizlanma * 1.2
+                    
+                    else:  # HAYATTA_KALMA
+                        # SAVUNMA AĞIRLIKLI
+                        if mevcut_mesafe < 180:
+                            if p_x > b_x:
+                                b_x_hiz -= bot_hizlanma * 1.3
+                            else:
+                                b_x_hiz += bot_hizlanma * 1.3
+                
+                # Zıplama - AKILLI KULLANIM
+                if ai_ziplama_karari():
+                    b_y_hiz = p_ziplama 
+                    b_ziplama_sayisi += 1
+                
+                # Engelleme kontrolü
+                if b_engelleme_aktif:
+                    b_engelleme_sayaci -= 1
+                    if b_engelleme_sayaci <= 0:
+                        b_engelleme_aktif = False
 
         # --- ORTAK FİZİK VE GÜNCELLEME (P2/BOT) ---
-
         if p2_stun_aktif: 
             b_x_hiz = 0
             b_y_hiz += yer_cekimi * 0.5
@@ -895,19 +1041,22 @@ while calisiyor:
             
         b_x += b_x_hiz
         b_y += b_y_hiz
-        if b_y + b_h > zemin_y: b_y = zemin_y - b_h; b_y_hiz = 0
+        
+        if b_y + b_h > zemin_y: 
+            b_y = zemin_y - b_h
+            b_y_hiz = 0
+            b_ziplama_sayisi = 0
+            b_ziplama_yapabilir = True
+        
         if b_x < 0: b_x, b_x_hiz = 0, 0
         if b_x > GENISLIK - b_w: b_x, b_x_hiz = GENISLIK - b_w, 0
         
-        # P2/BOT DASH HASAR KONTROLÜ
         if b_dash_aktif and not b_dash_hasar_verdi and b_rect.colliderect(p_rect) and p_can > 0:
             if p1_hasar_alabilir():
                 p_can -= DASH_HASARI
                 b_dash_hasar_verdi = True
         
         # --- SALDIRI SAYACI VE TEMİZLEME ---
-
-        # P1 Saldırı Temizleme
         if p_yumruk_aktif:
             p_yumruk_sayaci -= 1
             if p_yumruk_sayaci <= 0: p_yumruk_aktif = False
@@ -916,7 +1065,6 @@ while calisiyor:
             p_tekme_sayaci -= 1
             if p_tekme_sayaci <= 0: p_tekme_aktif = False
             
-        # P2/Bot Saldırı Temizleme
         if b_yumruk_aktif:
             b_yumruk_sayaci -= 1
             if b_yumruk_sayaci <= 0: b_yumruk_aktif = False
@@ -925,66 +1073,52 @@ while calisiyor:
             b_tekme_sayaci -= 1
             if b_tekme_sayaci <= 0: b_tekme_aktif = False
 
-
         # --- MERMİ FİZİĞİ VE ÇARPIŞMA ---
-        
-        # P1 Mermisi
         if p_mer_aktif:
             p_mer_x += p_mer_hiz
-            
             p_mer_rect = pygame.Rect(p_mer_x, p_mer_y, 10, 10)
             b_rect = pygame.Rect(b_x, b_y, b_w, b_h)
             
-            # Çarpışma Kontrolü
             if p_mer_rect.colliderect(b_rect) and b_can > 0 and p2_hasar_alabilir():
                 p_mer_aktif = False
-                
                 if b_engelleme_aktif:
                     b_can -= yet_hasari * 0.1 
                 else:
                     b_can -= yet_hasari
                     b_stun_bitis_zamani = mevcut_zaman + YETENEK_STUN_SURESI
-                    p_cekme_hakki_bitis_zamani = mevcut_zaman + 2000 # 2 saniye içinde Q'ya basma hakkı
+                    p_cekme_hakki_bitis_zamani = mevcut_zaman + 2000
                 b_engelleme_aktif = False
                 b_engelleme_sayaci = 0
 
-            # Ekran dışı kontrolü
             if p_mer_x < 0 or p_mer_x > GENISLIK:
                 p_mer_aktif = False
 
-        # P2/Bot Mermisi
         if b_mer_aktif:
             b_mer_x += b_mer_hiz
-            
             b_mer_rect = pygame.Rect(b_mer_x, b_mer_y, 10, 10)
             p_rect = pygame.Rect(p_x, p_y, p_w, p_h)
             
-            # Çarpışma Kontrolü
             if b_mer_rect.colliderect(p_rect) and p_can > 0 and p1_hasar_alabilir():
                 b_mer_aktif = False
                 p_can -= yet_hasari
                 p_stun_bitis_zamani = mevcut_zaman + YETENEK_STUN_SURESI
-                b_cekme_hakki_bitis_zamani = mevcut_zaman + 2000 # 2 saniye içinde J'ye basma hakkı
+                b_cekme_hakki_bitis_zamani = mevcut_zaman + 2000
             
-            # Ekran dışı kontrolü
             if b_mer_x < 0 or b_mer_x > GENISLIK:
                 b_mer_aktif = False
         
-
         # --- ÇİZİM ---
         ekran.fill(GOKYUZU) 
         pygame.draw.rect(ekran, ZEMIN_RENGI, (0, zemin_y, GENISLIK, zemin_yuksekligi))
         
-        # Can Barları Arka Plan
+        # Can Barları
         pygame.draw.rect(ekran, SIYAH, (p_bar_x, p_bar_y, bar_genislik, bar_yukseklik))
         pygame.draw.rect(ekran, SIYAH, (b_bar_x, b_bar_y, bar_genislik, bar_yukseklik))
         
-        # P1 Can Barı
         p_can_genislik = int(bar_genislik * (p_can / p_max_can))
         p_can_rect = pygame.Rect(p_bar_x, p_bar_y, p_can_genislik, bar_yukseklik)
         pygame.draw.rect(ekran, CAN_DOLU_P, p_can_rect)
 
-        # P2 Can Barı (Sağdan sola doğru)
         b_can_genislik = int(bar_genislik * (b_can / b_max_can))
         b_can_rect = pygame.Rect(b_bar_x + bar_genislik - b_can_genislik, b_bar_y, b_can_genislik, bar_yukseklik)
         pygame.draw.rect(ekran, CAN_DOLU_B, b_can_rect)
@@ -996,44 +1130,35 @@ while calisiyor:
         if p_dash_aktif: p_cizim_renk = DASH_RENK
         if b_dash_aktif: b_cizim_renk = DASH_RENK
         
-        # P1 Vücut
         pygame.draw.rect(ekran, p_cizim_renk, (p_x, p_y, p_w, p_h))
-        # P2 Vücut
         pygame.draw.rect(ekran, b_cizim_renk, (b_x, b_y, b_w, b_h))
         
-        # Engelleme Çizimi (Bot için)
         if b_engelleme_aktif:
             pygame.draw.rect(ekran, ENGELLEME_RENK, (b_x, b_y, b_w, b_h), 4)
 
-        # Stun Parlaması
         if p1_stun_aktif:
              pygame.draw.rect(ekran, STUN_PARLAMA_RENGI, (p_x, p_y, p_w, p_h), 5)
         if p2_stun_aktif:
              pygame.draw.rect(ekran, STUN_PARLAMA_RENGI, (b_x, b_y, b_w, b_h), 5)
         
         # Saldırı Kutularını Çiz
-        
-        # P1 Yumruk
         if p_yumruk_aktif:
             yumruk_genislik, yumruk_yukseklik = 50, 40
             yumruk_x = p_x + p_w if p_yon == 1 else p_x - yumruk_genislik
             yumruk_rect = pygame.Rect(yumruk_x, p_y + 30, yumruk_genislik, yumruk_yukseklik)
             pygame.draw.rect(ekran, YUMRUK_RENGI, yumruk_rect, 2)
         
-        # P1 Tekme
         if p_tekme_aktif:
             tekme_x = p_x + p_w if p_yon == 1 else p_x - tekme_menzili_w
             tekme_rect = pygame.Rect(tekme_x, p_y + p_h - tekme_menzili_h, tekme_menzili_w, tekme_menzili_h)
             pygame.draw.rect(ekran, TEKME_RENGI, tekme_rect, 2)
             
-        # P2/Bot Yumruk
         if b_yumruk_aktif:
             yumruk_genislik, yumruk_yukseklik = 50, 40
             yumruk_x = b_x + b_w if b_yon == 1 else b_x - yumruk_genislik
             yumruk_rect = pygame.Rect(yumruk_x, b_y + 30, yumruk_genislik, yumruk_yukseklik)
             pygame.draw.rect(ekran, YUMRUK_RENGI, yumruk_rect, 2)
         
-        # P2/Bot Tekme
         if b_tekme_aktif:
             tekme_x = b_x + b_w if b_yon == 1 else b_x - tekme_menzili_w
             tekme_rect = pygame.Rect(tekme_x, b_y + b_h - tekme_menzili_h, tekme_menzili_w, tekme_menzili_h)
@@ -1046,57 +1171,45 @@ while calisiyor:
             pygame.draw.circle(ekran, MERMI_RENK_B, (int(b_mer_x), int(b_mer_y)), 10)
 
         # --- COOLDOWN GÖSTERGELERİ ---
-        
-        # P1 Cooldown Göstergeleri (Sol Alt)
         p_cooldown_x = 100
         p_cooldown_y = YUKSEKLIK - 50
         radius = 35
         spacing = 90
         
-        # Yumruk Cooldown
         draw_cooldown_circle(ekran, p_cooldown_x, p_cooldown_y, radius, 
                             p_yumruk_cooldown_orani, pygame.key.name(p1_yumruk), 
                             p_yumruk_cooldown_kaldi, not p_yumruk_aktif and p_yumruk_cooldown_orani >= 1.0)
         
-        # Tekme Cooldown
         draw_cooldown_circle(ekran, p_cooldown_x + spacing, p_cooldown_y, radius,
                             p_tekme_cooldown_orani, pygame.key.name(p1_tekme),
                             p_tekme_cooldown_kaldi, not p_tekme_aktif and p_tekme_cooldown_orani >= 1.0)
         
-        # Dash Cooldown
         draw_cooldown_circle(ekran, p_cooldown_x + spacing * 2, p_cooldown_y, radius,
                             p_dash_cooldown_orani, pygame.key.name(p1_dash),
                             p_dash_cooldown_kaldi, not p_dash_aktif and p_dash_cooldown_orani >= 1.0)
         
-        # Skill Cooldown
         draw_cooldown_circle(ekran, p_cooldown_x + spacing * 3, p_cooldown_y, radius,
                             p_yet_cooldown_orani, pygame.key.name(p1_skill),
                             p_yet_cooldown_kaldi, not p_mer_aktif and p_yet_cooldown_orani >= 1.0)
         
-        # P2 Cooldown Göstergeleri (Sağ Alt)
         b_cooldown_x = GENISLIK - 100
         b_cooldown_y = YUKSEKLIK - 50
         
-        # Yumruk Cooldown
         draw_cooldown_circle(ekran, b_cooldown_x - spacing * 3, b_cooldown_y, radius,
                             b_yumruk_cooldown_orani, pygame.key.name(p2_yumruk),
                             b_yumruk_cooldown_kaldi, not b_yumruk_aktif and b_yumruk_cooldown_orani >= 1.0)
         
-        # Tekme Cooldown
         draw_cooldown_circle(ekran, b_cooldown_x - spacing * 2, b_cooldown_y, radius,
                             b_tekme_cooldown_orani, pygame.key.name(p2_tekme),
                             b_tekme_cooldown_kaldi, not b_tekme_aktif and b_tekme_cooldown_orani >= 1.0)
         
-        # Dash Cooldown
         draw_cooldown_circle(ekran, b_cooldown_x - spacing, b_cooldown_y, radius,
                             b_dash_cooldown_orani, pygame.key.name(p2_dash),
                             b_dash_cooldown_kaldi, not b_dash_aktif and b_dash_cooldown_orani >= 1.0)
         
-        # Skill Cooldown
         draw_cooldown_circle(ekran, b_cooldown_x, b_cooldown_y, radius,
                             b_yet_cooldown_orani, pygame.key.name(p2_skill),
                             b_yet_cooldown_kaldi, not b_mer_aktif and b_yet_cooldown_orani >= 1.0)
-
 
         # --- BİTİŞ KONTROLÜ ---
         if p_can <= 0 or b_can <= 0:
