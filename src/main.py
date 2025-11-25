@@ -226,6 +226,43 @@ def p2_hasar_alabilir():
     # Dash aktif değilse ve stun aktif değilse hasar alabilir
     return not b_dash_aktif and not b_stun_bitis_zamani > pygame.time.get_ticks()
 
+def draw_cooldown_circle(ekran, center_x, center_y, radius, cooldown_ratio, tus_adi, kalan_sure, aktif_mi):
+    """Yuvarlak cooldown göstergesi çizer"""
+    
+    # Arka plan daire (gri)
+    pygame.draw.circle(ekran, (50, 50, 50), (center_x, center_y), radius)
+    
+    # Cooldown doluluk oranına göre renk
+    if cooldown_ratio < 1.0:
+        # Cooldown doluyor - kırmızı
+        renk = (200, 50, 50)
+    else:
+        # Hazır - yeşil
+        renk = (50, 200, 50) if aktif_mi else (100, 100, 100)
+    
+    # Cooldown yüzdesine göre daire çiz (360 derecenin yüzdesi)
+    if cooldown_ratio < 1.0:
+        # Dolu kısmı çiz
+        angle = 360 * cooldown_ratio
+        pygame.draw.arc(ekran, renk, (center_x - radius, center_y - radius, radius * 2, radius * 2), 
+                       -math.pi/2, -math.pi/2 + math.radians(angle), int(radius * 0.3))
+    
+    # Dış çember
+    pygame.draw.circle(ekran, BEYAZ, (center_x, center_y), radius, 2)
+    
+    # Tuş adını yaz
+    font = pygame.font.SysFont('Arial', 20)
+    tus_text = font.render(tus_adi, True, BEYAZ)
+    tus_rect = tus_text.get_rect(center=(center_x, center_y))
+    ekran.blit(tus_text, tus_rect)
+    
+    # Kalan süreyi yaz (cooldown doluyorsa)
+    if cooldown_ratio < 1.0 and kalan_sure > 0:
+        time_font = pygame.font.SysFont('Arial', 16)
+        time_text = time_font.render(f"{kalan_sure/1000:.1f}s", True, BEYAZ)
+        time_rect = time_text.get_rect(center=(center_x, center_y + 25))
+        ekran.blit(time_text, time_rect)
+
 
 # 2. OYUN DÖNGÜSÜ
 calisiyor = True
@@ -239,6 +276,34 @@ while calisiyor:
     # Çekme Hakkı Kontrolü (Vuranın Q/J'ye tekrar basma hakkı)
     p1_cekme_hakki_aktif = mevcut_zaman < p_cekme_hakki_bitis_zamani
     p2_cekme_hakki_aktif = mevcut_zaman < b_cekme_hakki_bitis_zamani
+    
+    # --- COOLDOWN HESAPLAMALARI ---
+    
+    # P1 Cooldown Hesaplamaları
+    p_yumruk_cooldown_kaldi = max(0, yumruk_bekleme_suresi - (mevcut_zaman - p_son_vurus_zamani))
+    p_yumruk_cooldown_orani = 1 - (p_yumruk_cooldown_kaldi / yumruk_bekleme_suresi)
+    
+    p_tekme_cooldown_kaldi = max(0, tekme_bekleme_suresi - (mevcut_zaman - p_son_tekme_zamani))
+    p_tekme_cooldown_orani = 1 - (p_tekme_cooldown_kaldi / tekme_bekleme_suresi)
+    
+    p_yet_cooldown_kaldi = max(0, yet_bekleme_suresi - (mevcut_zaman - p_son_yet_zamani))
+    p_yet_cooldown_orani = 1 - (p_yet_cooldown_kaldi / yet_bekleme_suresi)
+    
+    p_dash_cooldown_kaldi = max(0, DASH_BEKLEME_SURESI - (mevcut_zaman - p_son_dash_zamani))
+    p_dash_cooldown_orani = 1 - (p_dash_cooldown_kaldi / DASH_BEKLEME_SURESI)
+    
+    # P2 Cooldown Hesaplamaları
+    b_yumruk_cooldown_kaldi = max(0, yumruk_bekleme_suresi - (mevcut_zaman - b_son_vurus_zamani))
+    b_yumruk_cooldown_orani = 1 - (b_yumruk_cooldown_kaldi / yumruk_bekleme_suresi)
+    
+    b_tekme_cooldown_kaldi = max(0, tekme_bekleme_suresi - (mevcut_zaman - b_son_tekme_zamani))
+    b_tekme_cooldown_orani = 1 - (b_tekme_cooldown_kaldi / tekme_bekleme_suresi)
+    
+    b_yet_cooldown_kaldi = max(0, yet_bekleme_suresi - (mevcut_zaman - b_son_yet_zamani))
+    b_yet_cooldown_orani = 1 - (b_yet_cooldown_kaldi / yet_bekleme_suresi)
+    
+    b_dash_cooldown_kaldi = max(0, DASH_BEKLEME_SURESI - (mevcut_zaman - b_son_dash_zamani))
+    b_dash_cooldown_orani = 1 - (b_dash_cooldown_kaldi / DASH_BEKLEME_SURESI)
     
     # --- GİRDİLER (Keydown) ---
     for event in pygame.event.get():
@@ -979,6 +1044,58 @@ while calisiyor:
             pygame.draw.circle(ekran, MERMI_RENK_P, (int(p_mer_x), int(p_mer_y)), 10)
         if b_mer_aktif:
             pygame.draw.circle(ekran, MERMI_RENK_B, (int(b_mer_x), int(b_mer_y)), 10)
+
+        # --- COOLDOWN GÖSTERGELERİ ---
+        
+        # P1 Cooldown Göstergeleri (Sol Alt)
+        p_cooldown_x = 100
+        p_cooldown_y = YUKSEKLIK - 50
+        radius = 35
+        spacing = 90
+        
+        # Yumruk Cooldown
+        draw_cooldown_circle(ekran, p_cooldown_x, p_cooldown_y, radius, 
+                            p_yumruk_cooldown_orani, pygame.key.name(p1_yumruk), 
+                            p_yumruk_cooldown_kaldi, not p_yumruk_aktif and p_yumruk_cooldown_orani >= 1.0)
+        
+        # Tekme Cooldown
+        draw_cooldown_circle(ekran, p_cooldown_x + spacing, p_cooldown_y, radius,
+                            p_tekme_cooldown_orani, pygame.key.name(p1_tekme),
+                            p_tekme_cooldown_kaldi, not p_tekme_aktif and p_tekme_cooldown_orani >= 1.0)
+        
+        # Dash Cooldown
+        draw_cooldown_circle(ekran, p_cooldown_x + spacing * 2, p_cooldown_y, radius,
+                            p_dash_cooldown_orani, pygame.key.name(p1_dash),
+                            p_dash_cooldown_kaldi, not p_dash_aktif and p_dash_cooldown_orani >= 1.0)
+        
+        # Skill Cooldown
+        draw_cooldown_circle(ekran, p_cooldown_x + spacing * 3, p_cooldown_y, radius,
+                            p_yet_cooldown_orani, pygame.key.name(p1_skill),
+                            p_yet_cooldown_kaldi, not p_mer_aktif and p_yet_cooldown_orani >= 1.0)
+        
+        # P2 Cooldown Göstergeleri (Sağ Alt)
+        b_cooldown_x = GENISLIK - 100
+        b_cooldown_y = YUKSEKLIK - 50
+        
+        # Yumruk Cooldown
+        draw_cooldown_circle(ekran, b_cooldown_x - spacing * 3, b_cooldown_y, radius,
+                            b_yumruk_cooldown_orani, pygame.key.name(p2_yumruk),
+                            b_yumruk_cooldown_kaldi, not b_yumruk_aktif and b_yumruk_cooldown_orani >= 1.0)
+        
+        # Tekme Cooldown
+        draw_cooldown_circle(ekran, b_cooldown_x - spacing * 2, b_cooldown_y, radius,
+                            b_tekme_cooldown_orani, pygame.key.name(p2_tekme),
+                            b_tekme_cooldown_kaldi, not b_tekme_aktif and b_tekme_cooldown_orani >= 1.0)
+        
+        # Dash Cooldown
+        draw_cooldown_circle(ekran, b_cooldown_x - spacing, b_cooldown_y, radius,
+                            b_dash_cooldown_orani, pygame.key.name(p2_dash),
+                            b_dash_cooldown_kaldi, not b_dash_aktif and b_dash_cooldown_orani >= 1.0)
+        
+        # Skill Cooldown
+        draw_cooldown_circle(ekran, b_cooldown_x, b_cooldown_y, radius,
+                            b_yet_cooldown_orani, pygame.key.name(p2_skill),
+                            b_yet_cooldown_kaldi, not b_mer_aktif and b_yet_cooldown_orani >= 1.0)
 
 
         # --- BİTİŞ KONTROLÜ ---
