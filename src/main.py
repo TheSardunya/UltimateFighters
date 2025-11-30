@@ -2,10 +2,29 @@ import pygame
 import sys
 import math
 import random 
-
+from PIL import Image 
 # 1. AYARLAR VE KURULUM
 pygame.init()
-
+# GIF Dosyalarını Dönüştürmek Için Fonksiyon
+def load_animated_gif(gif_path):  
+    # GIF'i Pillow ile aç
+    gif = Image.open(gif_path)  
+    frames = []  
+    durations = []  
+ 
+    # GIF'ten kareleri ve süreleri çıkar  
+    for frame_index in range(gif.n_frames):  
+        gif.seek(frame_index)  
+        frame_rgba = gif.convert("RGBA")  
+        frame_data = frame_rgba.tobytes()  
+        frame_surface = pygame.image.fromstring(  
+            frame_data, frame_rgba.size, frame_rgba.mode  
+        ).convert_alpha()  
+        frames.append(frame_surface)  
+        durations.append(gif.info.get("duration", 100))  # Varsayılan 100 milisaniye  
+ 
+    return frames, durations  
+ 
 # Tam Ekran
 ekran = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 info = pygame.display.Info()
@@ -13,6 +32,35 @@ GENISLIK = info.current_w
 YUKSEKLIK = info.current_h
 
 pygame.display.set_caption("Ultimate Fighter (Menü)")
+
+
+# Animasyon Sabitleri
+idle_anim, idle_durations = load_animated_gif("../assets/stickmanidlesmall.gif")
+r_idle_anim, r_idle_durations = load_animated_gif("../assets/stickmanidlersmall.gif")
+walk_anim, walk_durations = load_animated_gif("../assets/stickmannewsmall.gif")
+r_walk_anim, r_walk_durations = load_animated_gif("../assets/stickmannewrsmall.gif")
+fist_anim, fist_durations = load_animated_gif("../assets/stickmanfistsmall.gif")
+r_fist_anim, r_fist_durations = load_animated_gif("../assets/stickmanfistrsmall.gif")
+kick_anim, kick_durations = load_animated_gif("../assets/stickmankicksmall.gif")
+r_kick_anim, r_kick_durations = load_animated_gif("../assets/stickmankickrsmall.gif")
+
+
+ridle_anim, ridle_durations = load_animated_gif("../assets/redmanidlesmall.gif")
+r_ridle_anim, r_ridle_durations = load_animated_gif("../assets/redmanidlersmall.gif")
+rwalk_anim, rwalk_durations = load_animated_gif("../assets/redmannewsmall.gif")
+r_rwalk_anim, r_rwalk_durations = load_animated_gif("../assets/redmannewrsmall.gif")
+rfist_anim, rfist_durations = load_animated_gif("../assets/redmanfistsmall.gif")
+r_rfist_anim, r_rfist_durations = load_animated_gif("../assets/redmanfistrsmall.gif")
+rkick_anim, rkick_durations = load_animated_gif("../assets/redmankicksmall.gif")
+r_rkick_anim, r_rkick_durations = load_animated_gif("../assets/redmankickrsmall.gif")
+mevcut_animasyon = idle_anim
+p2mevcut_animasyon = ridle_anim
+current_frame = 0 
+p2current_frame = 0 
+frame_start_time = pygame.time.get_ticks()  
+p2frame_start_time = pygame.time.get_ticks()
+
+
 
 # --- OYUN DURUMU ---
 oyun_durumu = "MENU" 
@@ -90,18 +138,18 @@ mer_hiz = 30
 bot_hizlanma = p_hizlanma * 1.3 # Bot daha hızlı hareket edebilir
 
 # --- OYUNCU VE BOT TEMEL DEĞİŞKENLERİ ---
-p_w, p_h = 80, 120
-b_w, b_h = 80, 120
+p_w, p_h = 70, 110
+b_w, b_h = 70, 110
 p_max_can, b_max_can = 100, 100 
 
 # Yumruk/Tekme
-yumruk_suresi = 15      
+yumruk_suresi = 14
 yumruk_bekleme_suresi = 2000 
 yumruk_hasari = 5
-tekme_suresi = 20
+tekme_suresi = 24
 tekme_bekleme_suresi = 3000 
-tekme_hasari = 7 
-tekme_menzili_w, tekme_menzili_h = 80, 30 
+tekme_hasari = 9
+tekme_menzili_w, tekme_menzili_h = 30, 15 
 
 # Yetenek
 yet_bekleme_suresi = 10000 # 10 saniye bekleme süresi
@@ -839,18 +887,20 @@ while calisiyor:
         
         elif not p_yumruk_aktif and not p_tekme_aktif and not p1_stun_aktif: 
             if tuslar[p1_sol]: 
-                p_x_hiz -= p_hizlanma
+                p_x_hiz = -10
                 p_yon = -1
-            if tuslar[p1_sag]: 
-                p_x_hiz += p_hizlanma
+            elif tuslar[p1_sag]: 
+                p_x_hiz = 10
                 p_yon = 1
-        
+            elif p_ziplama_sayisi == 0: 
+                p_x_hiz = 0
+        elif p_yumruk_aktif and p_ziplama_sayisi == 0 or p_tekme_aktif and p_ziplama_sayisi == 0:
+            p_x_hiz = 0
         if p1_stun_aktif: 
             p_x_hiz = 0
             p_y_hiz += yer_cekimi * 0.5 
-        elif not p_dash_aktif: 
+        elif not p_dash_aktif and p_ziplama_sayisi != 0: 
             surtunme = p_yer_surtunmesi if p_y + p_h >= zemin_y - 1 else p_hava_surtunmesi
-            p_x_hiz *= surtunme 
             if abs(p_x_hiz) > p_max_hiz:
                 p_x_hiz = p_max_hiz if p_x_hiz > 0 else -p_max_hiz
             p_y_hiz += yer_cekimi
@@ -892,11 +942,14 @@ while calisiyor:
         if oyun_durumu == "IKI_OYUNCULU":
             if not b_yumruk_aktif and not b_tekme_aktif and not p2_stun_aktif and not b_dash_aktif:
                 if tuslar[pygame.K_LEFT]:
-                    b_x_hiz -= p_hizlanma
+                    b_x_hiz = -10
                     b_yon = -1
-                if tuslar[pygame.K_RIGHT]:
-                    b_x_hiz += p_hizlanma
+                elif tuslar[pygame.K_RIGHT]:
+                    b_x_hiz = 10
                     b_yon = 1
+                elif b_y_hiz == 0:
+                    b_x_hiz = 0
+                
                     
         elif oyun_durumu == "TEK_OYUNCULU":
             if bot_zorluk == "KOLAY":
@@ -1130,8 +1183,146 @@ while calisiyor:
         if p_dash_aktif: p_cizim_renk = DASH_RENK
         if b_dash_aktif: b_cizim_renk = DASH_RENK
         
-        pygame.draw.rect(ekran, p_cizim_renk, (p_x, p_y, p_w, p_h))
-        pygame.draw.rect(ekran, b_cizim_renk, (b_x, b_y, b_w, b_h))
+        
+        #P1 için Animasyonlar
+        if p_yumruk_aktif and mevcut_animasyon != fist_anim and mevcut_animasyon != r_fist_anim:
+            current_frame = 0
+            if p_yon == 1:
+                mevcut_animasyon = fist_anim
+            else:
+                mevcut_animasyon = r_fist_anim
+        elif p_tekme_aktif and mevcut_animasyon != kick_anim and mevcut_animasyon != r_kick_anim:
+            current_frame = 0
+            if p_yon == 1:
+                mevcut_animasyon = kick_anim
+            else:
+                mevcut_animasyon = r_kick_anim
+        elif p_x_hiz == 0 and p_y_hiz == 0 and p_yon == 1 and mevcut_animasyon != idle_anim and not p_yumruk_aktif and not p_tekme_aktif:
+            current_frame = 0
+            mevcut_animasyon = idle_anim
+        elif p_x_hiz == 0 and p_y_hiz == 0 and p_yon == -1 and mevcut_animasyon != r_idle_anim and not p_yumruk_aktif and not p_tekme_aktif:
+            current_frame = 0;
+            mevcut_animasyon = r_idle_anim
+        elif p_x_hiz > 0 and mevcut_animasyon != walk_anim and not p_yumruk_aktif and not p_tekme_aktif:
+            current_frame = 0
+            mevcut_animasyon = walk_anim
+        elif p_x_hiz < 0 and mevcut_animasyon != r_walk_anim and not p_yumruk_aktif and not p_tekme_aktif:
+            current_frame = 0
+            mevcut_animasyon = r_walk_anim
+        if mevcut_animasyon == idle_anim:
+            if mevcut_zaman - frame_start_time > idle_durations[current_frame] and p_x_hiz == 0 and p_y_hiz == 0:  
+                current_frame = (current_frame + 1) % len(idle_anim)  
+                mevcut_animasyon = idle_anim
+                frame_start_time = mevcut_zaman
+        elif mevcut_animasyon == kick_anim:
+            if mevcut_zaman - frame_start_time > kick_durations[current_frame]:  
+                current_frame = (current_frame + 1) % len(kick_anim)  
+                mevcut_animasyon = kick_anim
+                frame_start_time = mevcut_zaman
+        elif mevcut_animasyon == r_kick_anim:
+            if mevcut_zaman - frame_start_time > r_kick_durations[current_frame]:  
+                current_frame = (current_frame + 1) % len(r_kick_anim)  
+                mevcut_animasyon = r_kick_anim
+                frame_start_time = mevcut_zaman
+        elif mevcut_animasyon == fist_anim:
+            if mevcut_zaman - frame_start_time > fist_durations[current_frame]:  
+                current_frame = (current_frame + 1) % len(fist_anim)  
+                mevcut_animasyon = fist_anim
+                frame_start_time = mevcut_zaman
+        elif mevcut_animasyon == r_fist_anim:
+            if mevcut_zaman - frame_start_time > r_fist_durations[current_frame]:  
+                current_frame = (current_frame + 1) % len(r_fist_anim)  
+                mevcut_animasyon = r_fist_anim
+                frame_start_time = mevcut_zaman
+        elif mevcut_animasyon == walk_anim:
+            if mevcut_zaman - frame_start_time > walk_durations[current_frame]:  
+                current_frame = (current_frame + 1) % len(walk_anim)  
+                mevcut_animasyon = walk_anim
+                frame_start_time = mevcut_zaman
+        elif mevcut_animasyon == r_walk_anim:
+            if mevcut_zaman - frame_start_time > r_walk_durations[current_frame]:  
+                current_frame = (current_frame + 1) % len(r_walk_anim)  
+                mevcut_animasyon = r_walk_anim
+                frame_start_time = mevcut_zaman
+        elif mevcut_animasyon == r_idle_anim:
+            if mevcut_zaman - frame_start_time > r_idle_durations[current_frame]:  
+                current_frame = (current_frame + 1) % len(r_idle_anim)  
+                mevcut_animasyon = r_idle_anim
+                frame_start_time = mevcut_zaman
+        
+        
+        
+        #Bot/P2 için Animasyonlar
+        
+        
+        
+        
+        if b_yumruk_aktif and p2mevcut_animasyon != rfist_anim and p2mevcut_animasyon != r_rfist_anim:
+            p2current_frame = 0
+            if b_yon == 1:
+                p2mevcut_animasyon = rfist_anim
+            else:
+                p2mevcut_animasyon = r_rfist_anim
+        elif b_tekme_aktif and p2mevcut_animasyon != rkick_anim and p2mevcut_animasyon != r_rkick_anim:
+            p2current_frame = 0
+            if b_yon == 1:
+                p2mevcut_animasyon = rkick_anim
+            else:
+                p2mevcut_animasyon = r_rkick_anim
+        elif b_x_hiz == 0 and b_y_hiz == 0 and b_yon == 1 and p2mevcut_animasyon != ridle_anim and not b_yumruk_aktif and not b_tekme_aktif:
+            p2current_frame = 0
+            p2mevcut_animasyon = ridle_anim
+        elif b_x_hiz == 0 and b_y_hiz == 0 and b_yon == -1 and p2mevcut_animasyon != r_ridle_anim and not b_yumruk_aktif and not b_tekme_aktif:
+            p2current_frame = 0;
+            p2mevcut_animasyon = r_ridle_anim
+        elif b_x_hiz > 0 and p2mevcut_animasyon != rwalk_anim and not b_yumruk_aktif and not b_tekme_aktif:
+            p2current_frame = 0
+            p2mevcut_animasyon = rwalk_anim
+        elif b_x_hiz < 0 and p2mevcut_animasyon != r_rwalk_anim and not b_yumruk_aktif and not b_tekme_aktif:
+            p2current_frame = 0
+            p2mevcut_animasyon = r_rwalk_anim
+        if p2mevcut_animasyon == ridle_anim:
+            if mevcut_zaman - p2frame_start_time > ridle_durations[p2current_frame] and b_x_hiz == 0 and b_y_hiz == 0:  
+                p2current_frame = (p2current_frame + 1) % len(ridle_anim)  
+                p2mevcut_animasyon = ridle_anim
+                p2frame_start_time = mevcut_zaman
+        elif p2mevcut_animasyon == rkick_anim:
+            if mevcut_zaman - p2frame_start_time > rkick_durations[p2current_frame]:  
+                p2current_frame = (p2current_frame + 1) % len(rkick_anim)  
+                p2mevcut_animasyon = rkick_anim
+                p2frame_start_time = mevcut_zaman
+        elif p2mevcut_animasyon == r_rkick_anim:
+            if mevcut_zaman - p2frame_start_time > r_rkick_durations[p2current_frame]:  
+                p2current_frame = (p2current_frame + 1) % len(r_rkick_anim)  
+                p2mevcut_animasyon = r_rkick_anim
+                p2frame_start_time = mevcut_zaman
+        elif p2mevcut_animasyon == rfist_anim:
+            if mevcut_zaman - p2frame_start_time > rfist_durations[p2current_frame]:  
+                p2current_frame = (p2current_frame + 1) % len(rfist_anim)  
+                p2mevcut_animasyon = rfist_anim
+                p2frame_start_time = mevcut_zaman
+        elif p2mevcut_animasyon == r_rfist_anim:
+            if mevcut_zaman - p2frame_start_time > r_rfist_durations[p2current_frame]:  
+                p2current_frame = (p2current_frame + 1) % len(r_rfist_anim)  
+                p2mevcut_animasyon = r_rfist_anim
+                p2frame_start_time = mevcut_zaman
+        elif p2mevcut_animasyon == rwalk_anim:
+            if mevcut_zaman - p2frame_start_time > rwalk_durations[p2current_frame]:  
+                p2current_frame = (p2current_frame + 1) % len(rwalk_anim)  
+                p2mevcut_animasyon = rwalk_anim
+                p2frame_start_time = mevcut_zaman
+        elif p2mevcut_animasyon == r_rwalk_anim:
+            if mevcut_zaman - p2frame_start_time > r_rwalk_durations[p2current_frame]:  
+                p2current_frame = (p2current_frame + 1) % len(r_rwalk_anim)  
+                p2mevcut_animasyon = r_rwalk_anim
+                p2frame_start_time = mevcut_zaman
+        elif p2mevcut_animasyon == r_ridle_anim:
+            if mevcut_zaman - p2frame_start_time > r_ridle_durations[p2current_frame]:  
+                p2current_frame = (p2current_frame + 1) % len(r_ridle_anim)  
+                p2mevcut_animasyon = r_ridle_anim
+                p2frame_start_time = mevcut_zaman
+        ekran.blit(p2mevcut_animasyon[p2current_frame], (b_x - 30, b_y, b_w, b_h))
+        ekran.blit(mevcut_animasyon[current_frame], (p_x - 30, p_y, p_w, p_h))
         
         if b_engelleme_aktif:
             pygame.draw.rect(ekran, ENGELLEME_RENK, (b_x, b_y, b_w, b_h), 4)
@@ -1141,28 +1332,28 @@ while calisiyor:
         if p2_stun_aktif:
              pygame.draw.rect(ekran, STUN_PARLAMA_RENGI, (b_x, b_y, b_w, b_h), 5)
         
-        # Saldırı Kutularını Çiz
+        # Hitboxları Hesapla
         if p_yumruk_aktif:
-            yumruk_genislik, yumruk_yukseklik = 50, 40
+            yumruk_genislik, yumruk_yukseklik = 30, 20
             yumruk_x = p_x + p_w if p_yon == 1 else p_x - yumruk_genislik
             yumruk_rect = pygame.Rect(yumruk_x, p_y + 30, yumruk_genislik, yumruk_yukseklik)
-            pygame.draw.rect(ekran, YUMRUK_RENGI, yumruk_rect, 2)
+            
         
         if p_tekme_aktif:
             tekme_x = p_x + p_w if p_yon == 1 else p_x - tekme_menzili_w
-            tekme_rect = pygame.Rect(tekme_x, p_y + p_h - tekme_menzili_h, tekme_menzili_w, tekme_menzili_h)
-            pygame.draw.rect(ekran, TEKME_RENGI, tekme_rect, 2)
+            tekme_rect = pygame.Rect(tekme_x, p_y + p_h - tekme_menzili_h - 25, tekme_menzili_w, tekme_menzili_h)
+            
             
         if b_yumruk_aktif:
-            yumruk_genislik, yumruk_yukseklik = 50, 40
+            yumruk_genislik, yumruk_yukseklik = 30, 20
             yumruk_x = b_x + b_w if b_yon == 1 else b_x - yumruk_genislik
             yumruk_rect = pygame.Rect(yumruk_x, b_y + 30, yumruk_genislik, yumruk_yukseklik)
-            pygame.draw.rect(ekran, YUMRUK_RENGI, yumruk_rect, 2)
+            
         
         if b_tekme_aktif:
             tekme_x = b_x + b_w if b_yon == 1 else b_x - tekme_menzili_w
-            tekme_rect = pygame.Rect(tekme_x, b_y + b_h - tekme_menzili_h, tekme_menzili_w, tekme_menzili_h)
-            pygame.draw.rect(ekran, TEKME_RENGI, tekme_rect, 2)
+            tekme_rect = pygame.Rect(tekme_x, b_y + b_h - tekme_menzili_h - 25, tekme_menzili_w, tekme_menzili_h)
+            
         
         # Mermi Çizimi
         if p_mer_aktif:
