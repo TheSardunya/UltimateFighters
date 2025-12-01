@@ -143,7 +143,7 @@ b_w, b_h = 70, 110
 p_max_can, b_max_can = 100, 100 
 
 # Yumruk/Tekme
-yumruk_suresi = 14
+yumruk_suresi = 12
 yumruk_bekleme_suresi = 2000 
 yumruk_hasari = 5
 tekme_suresi = 24
