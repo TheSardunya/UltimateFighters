@@ -1,3 +1,3 @@
 pygame and Pillow needed for compiling
 
-#WILL NOT BE MAINTAINED
+# **WILL NOT BE MAINTAINED**
